@@ -1,7 +1,6 @@
 #pragma once
 
-#define ICYPUFF_DISALLOW_COPY(TypeName) \
-  TypeName(const TypeName&) = delete
+#define ICYPUFF_DISALLOW_COPY(TypeName) TypeName(const TypeName&) = delete
 
 #define ICYPUFF_DISALLOW_ASSIGN(TypeName) \
   TypeName& operator=(const TypeName&) = delete

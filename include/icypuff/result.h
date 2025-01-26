@@ -1,7 +1,7 @@
 #pragma once
 
-#include <variant>
 #include <string_view>
+#include <variant>
 
 namespace icypuff {
 
@@ -12,9 +12,9 @@ enum class ErrorCode {
   // Add more error codes as needed
 };
 
-template<typename T>
+template <typename T>
 class Result {
-public:
+ public:
   struct Error {
     ErrorCode code;
     std::string_view message;
@@ -22,32 +22,24 @@ public:
 
   // Construct with value
   constexpr Result(T value) : var_(std::move(value)) {}
-  
+
   // Construct with error
-  constexpr Result(ErrorCode code, std::string_view message) 
-    : var_(Error{code, message}) {}
+  constexpr Result(ErrorCode code, std::string_view message)
+      : var_(Error{code, message}) {}
 
   // Check if result contains a value
-  constexpr bool ok() const noexcept {
-    return std::holds_alternative<T>(var_);
-  }
+  constexpr bool ok() const { return std::holds_alternative<T>(var_); }
 
   // Get the contained value. Must check ok() first.
-  constexpr const T& value() const& noexcept {
-    return std::get<T>(var_);
-  }
-  
-  constexpr T&& value() && noexcept {
-    return std::get<T>(std::move(var_));
-  }
+  constexpr const T& value() const& { return std::get<T>(var_); }
+
+  constexpr T&& value() && { return std::get<T>(std::move(var_)); }
 
   // Get the error. Must check !ok() first.
-  constexpr const Error& error() const& noexcept {
-    return std::get<Error>(var_);
-  }
+  constexpr const Error& error() const& { return std::get<Error>(var_); }
 
-private:
+ private:
   std::variant<T, Error> var_;
 };
 
-} // namespace icypuff 
+}  // namespace icypuff

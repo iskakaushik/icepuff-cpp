@@ -6,4 +6,4 @@ namespace icypuff {
 
 std::string HelloWorld();
 
-} // namespace icypuff 
+}  // namespace icypuff

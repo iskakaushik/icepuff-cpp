@@ -1,7 +1,8 @@
-#include "icypuff/icypuff.h"
 #include <iostream>
 
+#include "icypuff/icypuff.h"
+
 int main() {
-    std::cout << icypuff::HelloWorld() << std::endl;
-    return 0;
-} 
+  std::cout << icypuff::HelloWorld() << std::endl;
+  return 0;
+}

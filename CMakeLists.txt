@@ -27,6 +27,7 @@ find_package(fmt CONFIG REQUIRED)
 set(ICYPUFF_SOURCES
     src/blob.cpp
     src/icypuff.cpp
+    src/blob_metadata.cpp
 )
 
 set(ICYPUFF_HEADERS
@@ -36,6 +37,7 @@ set(ICYPUFF_HEADERS
     include/icypuff/macros.h
     include/icypuff/result.h
     include/icypuff/version.h
+    include/icypuff/blob_metadata.h
 )
 
 # Library
