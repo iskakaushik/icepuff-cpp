@@ -1,4 +1,7 @@
 .envrc
+build
+compile_commands.json
+.cache
 
 # Prerequisites
 *.d
