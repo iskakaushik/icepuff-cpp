@@ -5,9 +5,17 @@ project(icypuff
     DESCRIPTION "A simple C++ library"
 )
 
+# Enforce C++17 and disable exceptions
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(MSVC)
+  string(REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  add_compile_definitions(_HAS_EXCEPTIONS=0)
+else()
+  add_compile_options(-fno-exceptions)
+endif()
 
 # Options
 option(ICYPUFF_BUILD_EXAMPLES "Build example applications" ON)
@@ -15,9 +23,25 @@ option(ICYPUFF_BUILD_EXAMPLES "Build example applications" ON)
 # Dependencies
 find_package(fmt CONFIG REQUIRED)
 
+# Collect source files
+set(ICYPUFF_SOURCES
+    src/blob.cpp
+    src/icypuff.cpp
+)
+
+set(ICYPUFF_HEADERS
+    include/icypuff/blob.h
+    include/icypuff/compression_codec.h
+    include/icypuff/icypuff.h
+    include/icypuff/macros.h
+    include/icypuff/result.h
+    include/icypuff/version.h
+)
+
 # Library
 add_library(icypuff
-    src/icypuff.cpp
+    ${ICYPUFF_SOURCES}
+    ${ICYPUFF_HEADERS}
 )
 
 add_library(icypuff::icypuff ALIAS icypuff)
@@ -31,6 +55,19 @@ target_include_directories(icypuff
 target_link_libraries(icypuff
     PUBLIC
         fmt::fmt
+)
+
+# Set source groups for better IDE organization
+source_group(
+    TREE ${CMAKE_CURRENT_SOURCE_DIR}
+    PREFIX "Source Files"
+    FILES ${ICYPUFF_SOURCES}
+)
+
+source_group(
+    TREE ${CMAKE_CURRENT_SOURCE_DIR}
+    PREFIX "Header Files"
+    FILES ${ICYPUFF_HEADERS}
 )
 
 # Installation
