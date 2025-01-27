@@ -2,7 +2,8 @@
 
 namespace icypuff {
 
-Result<BlobMetadata> BlobMetadata::Create(const BlobMetadataParams& params) {
+Result<std::unique_ptr<BlobMetadata>> BlobMetadata::Create(
+    const BlobMetadataParams& params) {
   if (params.type.empty()) {
     return {ErrorCode::kInvalidArgument, "type is empty"};
   }
@@ -16,7 +17,7 @@ Result<BlobMetadata> BlobMetadata::Create(const BlobMetadataParams& params) {
     return {ErrorCode::kInvalidArgument, "length must be positive"};
   }
 
-  return BlobMetadata(params);
+  return std::make_unique<BlobMetadata>(params);
 }
 
 BlobMetadata::BlobMetadata(const BlobMetadataParams& params)
@@ -28,6 +29,8 @@ BlobMetadata::BlobMetadata(const BlobMetadataParams& params)
       length_(params.length),
       compression_codec_(std::move(params.compression_codec)),
       properties_(std::move(params.properties)) {}
+
+BlobMetadata::~BlobMetadata() = default;
 
 const std::string& BlobMetadata::type() const { return type_; }
 

@@ -2,11 +2,12 @@
 
 namespace icypuff {
 
-Result<FileMetadata> FileMetadata::Create(FileMetadataParams&& params) {
+Result<std::unique_ptr<FileMetadata>> FileMetadata::Create(
+    FileMetadataParams&& params) {
   if (params.blobs.empty()) {
     return {ErrorCode::kInvalidArgument, "blobs is empty"};
   }
-  return FileMetadata(std::move(params));
+  return std::make_unique<FileMetadata>(std::move(params));
 }
 
 FileMetadata::FileMetadata(FileMetadataParams&& params)

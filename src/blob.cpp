@@ -2,7 +2,7 @@
 
 namespace icypuff {
 
-Result<Blob> Blob::Create(const BlobParams& params) {
+Result<std::unique_ptr<Blob>> Blob::Create(const BlobParams& params) {
   if (params.type.empty()) {
     return {ErrorCode::kInvalidArgument, "type is empty"};
   }
@@ -11,7 +11,7 @@ Result<Blob> Blob::Create(const BlobParams& params) {
     return {ErrorCode::kInvalidArgument, "blob_data is empty"};
   }
 
-  return Blob(params);
+  return std::make_unique<Blob>(params);
 }
 
 Blob::Blob(const BlobParams& params)
@@ -22,6 +22,8 @@ Blob::Blob(const BlobParams& params)
       blob_data_(std::move(params.blob_data)),
       requested_compression_(params.requested_compression),
       properties_(std::move(params.properties)) {}
+
+Blob::~Blob() = default;
 
 const std::string& Blob::type() const { return type_; }
 

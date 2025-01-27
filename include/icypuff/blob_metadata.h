@@ -24,11 +24,15 @@ struct BlobMetadataParams {
 
 class BlobMetadata {
  public:
-  static Result<BlobMetadata> Create(const BlobMetadataParams& params);
+  // Factory method that returns a unique_ptr to ensure ownership semantics
+  static Result<std::unique_ptr<BlobMetadata>> Create(const BlobMetadataParams& params);
 
-  // Allow move operations
-  BlobMetadata(BlobMetadata&&) = default;
-  BlobMetadata& operator=(BlobMetadata&&) = default;
+  // Constructor is public but ownership is still enforced through unique_ptr
+  explicit BlobMetadata(const BlobMetadataParams& params);
+
+  ICYPUFF_DISALLOW_COPY_ASSIGN_AND_MOVE(BlobMetadata);
+
+  ~BlobMetadata();
 
   // Getters
   const std::string& type() const;
@@ -41,10 +45,6 @@ class BlobMetadata {
   const std::unordered_map<std::string, std::string>& properties() const;
 
  private:
-  explicit BlobMetadata(const BlobMetadataParams& params);
-
-  ICYPUFF_DISALLOW_COPY_AND_ASSIGN(BlobMetadata);
-
   std::string type_;
   std::vector<int> input_fields_;
   int64_t snapshot_id_;

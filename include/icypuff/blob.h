@@ -23,14 +23,15 @@ struct BlobParams {
 
 class Blob {
  public:
-  // Full constructor
-  static Result<Blob> Create(const BlobParams& params);
+  // Factory method that returns a unique_ptr to ensure ownership semantics
+  static Result<std::unique_ptr<Blob>> Create(const BlobParams& params);
 
-  // Allow move operations
-  Blob(Blob&&) = default;
-  Blob& operator=(Blob&&) = default;
+  // Constructor is public but ownership is still enforced through unique_ptr
+  explicit Blob(const BlobParams& params);
 
-  ICYPUFF_DISALLOW_COPY_AND_ASSIGN(Blob);
+  ICYPUFF_DISALLOW_COPY_ASSIGN_AND_MOVE(Blob);
+
+  ~Blob();
 
   // Getters
   const std::string& type() const;
@@ -42,8 +43,6 @@ class Blob {
   const std::unordered_map<std::string, std::string>& properties() const;
 
  private:
-  explicit Blob(const BlobParams& params);
-
   std::string type_;
   std::vector<int> input_fields_;
   int64_t snapshot_id_;

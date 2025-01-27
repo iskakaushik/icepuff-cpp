@@ -18,11 +18,13 @@ struct FileMetadataParams {
 
 class FileMetadata {
  public:
-  static Result<FileMetadata> Create(FileMetadataParams&& params);
+  // Factory method that returns a unique_ptr to ensure ownership semantics
+  static Result<std::unique_ptr<FileMetadata>> Create(FileMetadataParams&& params);
 
-  // Allow move operations
-  FileMetadata(FileMetadata&&) = default;
-  FileMetadata& operator=(FileMetadata&&) = default;
+  // Constructor is public but ownership is still enforced through unique_ptr
+  explicit FileMetadata(FileMetadataParams&& params);
+
+  ICYPUFF_DISALLOW_COPY_ASSIGN_AND_MOVE(FileMetadata);
 
   ~FileMetadata();
 
@@ -31,10 +33,6 @@ class FileMetadata {
   const std::unordered_map<std::string, std::string>& properties() const;
 
  private:
-  ICYPUFF_DISALLOW_COPY_AND_ASSIGN(FileMetadata);
-
-  explicit FileMetadata(FileMetadataParams&& params);
-
   std::vector<std::unique_ptr<BlobMetadata>> blobs_;
   std::unordered_map<std::string, std::string> properties_;
 };
