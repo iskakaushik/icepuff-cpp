@@ -17,9 +17,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         include:
           - os: ubuntu-latest
-            install_cmd: sudo apt-get update && sudo apt-get install -y cmake ninja-build clang-tidy clang-format
+            install_cmd: sudo apt-get update && sudo apt-get install -y cmake ninja-build clang-tidy clang-format fd-find
           - os: macos-latest
-            install_cmd: brew install cmake ninja llvm
+            install_cmd: brew install cmake ninja llvm fd
     
     runs-on: ${{ matrix.os }}
     
