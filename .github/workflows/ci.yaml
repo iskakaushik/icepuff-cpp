@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  BUILD_TYPE: Release
+  VCPKG_COMMIT: 2024.02.14
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            install_cmd: sudo apt-get update && sudo apt-get install -y cmake ninja-build clang-tidy clang-format
+          - os: macos-latest
+            install_cmd: brew install cmake ninja llvm
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: ${{ matrix.install_cmd }}
+
+    - name: Setup vcpkg
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        ./vcpkg/bootstrap-vcpkg.sh
+        echo "VCPKG_ROOT=$GITHUB_WORKSPACE/vcpkg" >> $GITHUB_ENV
+
+    - name: Cache vcpkg packages
+      uses: actions/cache@v3
+      with:
+        path: ${{ github.workspace }}/vcpkg
+        key: vcpkg-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+
+    - name: Check Format
+      if: matrix.os == 'ubuntu-latest'
+      run: ./scripts/format.sh --check
+
+    - name: Run Linter
+      if: matrix.os == 'ubuntu-latest'
+      run: ./scripts/lint.sh
+
+    - name: Build
+      run: |
+        cmake -B build -S . \
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+          -DCMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake \
+          -GNinja
+        cmake --build build
+
+    - name: Test
+      run: ./scripts/test.sh
