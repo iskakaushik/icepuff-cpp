@@ -1,6 +1,6 @@
 # IcyPuff C++
 
-A C++ implementation of the Puffin file format reader and writer. Currently supports local file operations.
+A C++ implementation of the [Puffin file format](https://iceberg.apache.org/puffin-spec) reader and writer. Currently supports local file operations.
 
 ## Overview
 
