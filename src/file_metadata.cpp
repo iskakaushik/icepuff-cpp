@@ -2,18 +2,23 @@
 
 namespace icypuff {
 
-Result<FileMetadata> FileMetadata::Create(const FileMetadataParams& params) {
+Result<FileMetadata> FileMetadata::Create(FileMetadataParams&& params) {
   if (params.blobs.empty()) {
     return {ErrorCode::kInvalidArgument, "blobs is empty"};
   }
-  return FileMetadata(params);
+  return FileMetadata(std::move(params));
 }
 
-FileMetadata::FileMetadata(const FileMetadataParams& params)
-    : blobs_(std::move(params.blobs)),
+FileMetadata::FileMetadata(FileMetadataParams&& params)
+    : blobs_(std::make_move_iterator(params.blobs.begin()),
+            std::make_move_iterator(params.blobs.end())),
       properties_(std::move(params.properties)) {}
 
-const std::vector<BlobMetadata>& FileMetadata::blobs() const { return blobs_; }
+FileMetadata::~FileMetadata() = default;
+
+const std::vector<std::unique_ptr<BlobMetadata>>& FileMetadata::blobs() const {
+  return blobs_;
+}
 
 const std::unordered_map<std::string, std::string>& FileMetadata::properties()
     const {

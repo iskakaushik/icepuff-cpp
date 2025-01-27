@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -11,13 +12,13 @@
 namespace icypuff {
 
 struct FileMetadataParams {
-  std::vector<BlobMetadata> blobs;
+  std::vector<std::unique_ptr<BlobMetadata>> blobs;
   std::unordered_map<std::string, std::string> properties;
 };
 
 class FileMetadata {
  public:
-  static Result<FileMetadata> Create(const FileMetadataParams& params);
+  static Result<FileMetadata> Create(FileMetadataParams&& params);
 
   // Allow move operations
   FileMetadata(FileMetadata&&) = default;
@@ -25,14 +26,16 @@ class FileMetadata {
 
   ICYPUFF_DISALLOW_COPY_AND_ASSIGN(FileMetadata);
 
+  ~FileMetadata();
+
   // Getters
-  const std::vector<BlobMetadata>& blobs() const;
+  const std::vector<std::unique_ptr<BlobMetadata>>& blobs() const;
   const std::unordered_map<std::string, std::string>& properties() const;
 
  private:
-  explicit FileMetadata(const FileMetadataParams& params);
+  explicit FileMetadata(FileMetadataParams&& params);
 
-  std::vector<BlobMetadata> blobs_;
+  std::vector<std::unique_ptr<BlobMetadata>> blobs_;
   std::unordered_map<std::string, std::string> properties_;
 };
 
