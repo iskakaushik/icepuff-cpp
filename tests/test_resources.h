@@ -1,9 +1,9 @@
 #pragma once
 
 #include <filesystem>
+#include <iostream>
 #include <memory>
 #include <string>
-#include <iostream>
 
 #include "icypuff/local_input_file.h"
 #include "icypuff/local_output_file.h"
@@ -33,7 +33,6 @@ class TestResources {
       const std::string& resource_name) {
     return std::make_unique<LocalOutputFile>(GetResourcePath(resource_name));
   }
-
 };
 
 }  // namespace testing

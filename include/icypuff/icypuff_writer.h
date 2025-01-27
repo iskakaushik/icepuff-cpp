@@ -24,13 +24,12 @@ class IcypuffWriter {
   virtual ~IcypuffWriter() = default;
 
   // Write a blob to the file
-  Result<std::unique_ptr<BlobMetadata>> write_blob(const uint8_t* data, size_t length,
-                                                  const std::string& type,
-                                                  const std::vector<int>& fields,
-                                                  int64_t snapshot_id = 0,
-                                                  int64_t sequence_number = 0,
-                                                  std::optional<CompressionCodec> compression = std::nullopt,
-                                                  const std::unordered_map<std::string, std::string>& properties = {});
+  Result<std::unique_ptr<BlobMetadata>> write_blob(
+      const uint8_t* data, size_t length, const std::string& type,
+      const std::vector<int>& fields, int64_t snapshot_id = 0,
+      int64_t sequence_number = 0,
+      std::optional<CompressionCodec> compression = std::nullopt,
+      const std::unordered_map<std::string, std::string>& properties = {});
 
   // Get the current file size
   Result<int64_t> file_size() const;
@@ -39,7 +38,8 @@ class IcypuffWriter {
   Result<int64_t> footer_size() const;
 
   // Get the list of written blobs metadata
-  const std::vector<std::unique_ptr<BlobMetadata>>& written_blobs_metadata() const;
+  const std::vector<std::unique_ptr<BlobMetadata>>& written_blobs_metadata()
+      const;
 
   // Close the file and write the footer
   Result<void> close();
@@ -51,9 +51,8 @@ class IcypuffWriter {
   Result<void> write_header_if_needed();
   Result<void> write_footer();
   Result<void> write_flags();
-  Result<std::vector<uint8_t>> compress_data(const uint8_t* data,
-                                           size_t length,
-                                           CompressionCodec codec);
+  Result<std::vector<uint8_t>> compress_data(const uint8_t* data, size_t length,
+                                             CompressionCodec codec);
 
   // Member variables
   std::unique_ptr<OutputFile> output_file_;

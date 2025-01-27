@@ -16,12 +16,11 @@ namespace icypuff {
 IcypuffWriter::IcypuffWriter(
     std::unique_ptr<OutputFile> output_file,
     std::unordered_map<std::string, std::string> properties,
-    bool compress_footer,
-    CompressionCodec default_blob_compression)
+    bool compress_footer, CompressionCodec default_blob_compression)
     : output_file_(std::move(output_file)),
       properties_(std::move(properties)),
       footer_compression_(compress_footer ? CompressionCodec::Zstd
-                                        : CompressionCodec::None),
+                                          : CompressionCodec::None),
       default_blob_compression_(default_blob_compression) {
   spdlog::debug("Attempting to create output stream");
 
@@ -38,8 +37,8 @@ IcypuffWriter::IcypuffWriter(
 
 Result<std::unique_ptr<BlobMetadata>> IcypuffWriter::write_blob(
     const uint8_t* data, size_t length, const std::string& type,
-    const std::vector<int>& fields, int64_t snapshot_id, int64_t sequence_number,
-    std::optional<CompressionCodec> compression,
+    const std::vector<int>& fields, int64_t snapshot_id,
+    int64_t sequence_number, std::optional<CompressionCodec> compression,
     const std::unordered_map<std::string, std::string>& properties) {
   spdlog::debug("Writing blob of type: {} with length: {}", type, length);
 
@@ -66,7 +65,7 @@ Result<std::unique_ptr<BlobMetadata>> IcypuffWriter::write_blob(
 
   // Use the provided compression codec or fall back to default
   CompressionCodec codec = compression.value_or(default_blob_compression_);
-  
+
   // Compress the data if needed
   auto compressed_data = compress_data(data, length, codec);
   if (!compressed_data.ok()) {
@@ -75,7 +74,7 @@ Result<std::unique_ptr<BlobMetadata>> IcypuffWriter::write_blob(
 
   // Write the compressed data
   auto write_result = output_stream_->write(compressed_data.value().data(),
-                                          compressed_data.value().size());
+                                            compressed_data.value().size());
   if (!write_result.ok()) {
     return {write_result.error().code, write_result.error().message};
   }
@@ -102,14 +101,16 @@ Result<std::unique_ptr<BlobMetadata>> IcypuffWriter::write_blob(
 
 Result<int64_t> IcypuffWriter::file_size() const {
   if (!file_size_) {
-    return {ErrorCode::kInvalidArgument, "File size not available until closed"};
+    return {ErrorCode::kInvalidArgument,
+            "File size not available until closed"};
   }
   return file_size_.value();
 }
 
 Result<int64_t> IcypuffWriter::footer_size() const {
   if (!footer_size_) {
-    return {ErrorCode::kInvalidArgument, "Footer size not available until closed"};
+    return {ErrorCode::kInvalidArgument,
+            "Footer size not available until closed"};
   }
   return footer_size_.value();
 }
@@ -205,17 +206,16 @@ Result<void> IcypuffWriter::write_footer() {
   }
 
   std::string json_str = std::move(json_result).value();
-  auto compressed_json = compress_data(
-      reinterpret_cast<const uint8_t*>(json_str.data()),
-      json_str.size(),
-      footer_compression_);
+  auto compressed_json =
+      compress_data(reinterpret_cast<const uint8_t*>(json_str.data()),
+                    json_str.size(), footer_compression_);
   if (!compressed_json.ok()) {
     return {compressed_json.error().code, compressed_json.error().message};
   }
 
   // Write compressed JSON
   write_result = output_stream_->write(compressed_json.value().data(),
-                                     compressed_json.value().size());
+                                       compressed_json.value().size());
   if (!write_result.ok()) {
     return write_result;
   }
@@ -223,8 +223,8 @@ Result<void> IcypuffWriter::write_footer() {
   // Write footer struct
   std::vector<uint8_t> footer_struct(FOOTER_STRUCT_LENGTH);
   write_integer_little_endian(footer_struct.data(),
-                             FOOTER_STRUCT_PAYLOAD_SIZE_OFFSET,
-                             compressed_json.value().size());
+                              FOOTER_STRUCT_PAYLOAD_SIZE_OFFSET,
+                              compressed_json.value().size());
 
   // Write flags
   uint32_t flags = 0;
@@ -232,13 +232,14 @@ Result<void> IcypuffWriter::write_footer() {
     flags |= (1 << static_cast<int>(FooterFlag::FOOTER_PAYLOAD_COMPRESSED));
   }
   write_integer_little_endian(footer_struct.data(), FOOTER_STRUCT_FLAGS_OFFSET,
-                             flags);
+                              flags);
 
   // Write footer magic
   std::memcpy(footer_struct.data() + FOOTER_STRUCT_MAGIC_OFFSET, MAGIC,
               MAGIC_LENGTH);
 
-  write_result = output_stream_->write(footer_struct.data(), footer_struct.size());
+  write_result =
+      output_stream_->write(footer_struct.data(), footer_struct.size());
   if (!write_result.ok()) {
     return write_result;
   }
@@ -262,8 +263,8 @@ Result<std::vector<uint8_t>> IcypuffWriter::compress_data(
       prefs.frameInfo.contentChecksumFlag = LZ4F_contentChecksumEnabled;
       prefs.frameInfo.blockChecksumFlag = LZ4F_blockChecksumEnabled;
 
-      size_t result = LZ4F_compressFrame(compressed.data(), max_dst_size,
-                                       data, length, &prefs);
+      size_t result = LZ4F_compressFrame(compressed.data(), max_dst_size, data,
+                                         length, &prefs);
       if (LZ4F_isError(result)) {
         spdlog::error("LZ4 compression failed: {}", LZ4F_getErrorName(result));
         return {ErrorCode::kCompressionError, "LZ4 compression failed"};
@@ -289,7 +290,7 @@ Result<std::vector<uint8_t>> IcypuffWriter::compress_data(
       ZSTD_CCtx_setParameter(ctx.get(), ZSTD_c_contentSizeFlag, 1);
 
       size_t result = ZSTD_compress2(ctx.get(), compressed.data(), max_dst_size,
-                                   data, length);
+                                     data, length);
 
       if (ZSTD_isError(result)) {
         spdlog::error("ZSTD compression failed: {}", ZSTD_getErrorName(result));
@@ -304,4 +305,4 @@ Result<std::vector<uint8_t>> IcypuffWriter::compress_data(
   return {ErrorCode::kUnknownCodec, "Unknown compression codec"};
 }
 
-}  // namespace icypuff 
+}  // namespace icypuff

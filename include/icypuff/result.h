@@ -31,7 +31,7 @@ enum class ErrorCode {
   // Other errors
   kUnimplemented,  // Feature not implemented
   kInternalError,  // Unexpected internal error
-  kInvalidState,  // Invalid state
+  kInvalidState,   // Invalid state
 };
 
 struct ResultError {

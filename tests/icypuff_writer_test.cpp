@@ -4,9 +4,9 @@
 #include <spdlog/spdlog.h>
 
 #include <memory>
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
 
 #include "icypuff/icypuff.h"
 #include "test_resources.h"
@@ -59,7 +59,8 @@ TEST_F(IcypuffWriterTest, EmptyFooterUncompressed) {
   auto footer_size_result = writer->footer_size();
   ASSERT_FALSE(footer_size_result.ok());
   EXPECT_EQ(footer_size_result.error().code, ErrorCode::kInvalidArgument);
-  EXPECT_EQ(footer_size_result.error().message, "Footer size not available until closed");
+  EXPECT_EQ(footer_size_result.error().message,
+            "Footer size not available until closed");
 
   // Close writer
   auto close_result = writer->close();
@@ -71,8 +72,10 @@ TEST_F(IcypuffWriterTest, EmptyFooterUncompressed) {
   EXPECT_EQ(footer_size_result.value(), EMPTY_PUFFIN_UNCOMPRESSED_FOOTER_SIZE);
 
   // Compare with reference file
-  auto reference_file = TestResources::CreateInputFile("v1/empty-puffin-uncompressed.bin");
-  auto reference_data = reference_file->read_at(0, reference_file->length().value());
+  auto reference_file =
+      TestResources::CreateInputFile("v1/empty-puffin-uncompressed.bin");
+  auto reference_data =
+      reference_file->read_at(0, reference_file->length().value());
   ASSERT_TRUE(reference_data.ok()) << reference_data.error().message;
 
   auto input_file = TestResources::CreateInputFile(filename);
@@ -84,55 +87,39 @@ TEST_F(IcypuffWriterTest, EmptyFooterUncompressed) {
 }
 
 TEST_F(IcypuffWriterTest, WriteMetricDataUncompressed) {
-  std::string filename = generate_uuid() + "-sample-metric-data-uncompressed.bin";
+  std::string filename =
+      generate_uuid() + "-sample-metric-data-uncompressed.bin";
   auto output_file = TestResources::CreateOutputFile(filename);
-  auto writer_result = Icypuff::write(std::move(output_file))
-                          .created_by("Test 1234")
-                          .build();
+  auto writer_result =
+      Icypuff::write(std::move(output_file)).created_by("Test 1234").build();
   ASSERT_TRUE(writer_result.ok()) << writer_result.error().message;
   auto writer = std::move(writer_result).value();
 
   // Write first blob
   std::string data1 = "abcdefghi";
-  auto blob1_result = writer->write_blob(
-      reinterpret_cast<const uint8_t*>(data1.data()),
-      data1.size(),
-      "some-blob",
-      std::vector<int>{1},
-      2,  // snapshot_id
-      1   // sequence_number
-  );
+  auto blob1_result =
+      writer->write_blob(reinterpret_cast<const uint8_t*>(data1.data()),
+                         data1.size(), "some-blob", std::vector<int>{1},
+                         2,  // snapshot_id
+                         1   // sequence_number
+      );
   ASSERT_TRUE(blob1_result.ok()) << blob1_result.error().message;
 
   // Create binary data with null character and emoji
   std::vector<uint8_t> binary_data = {
-      's', 'o', 'm', 'e', ' ',
-      'b', 'l', 'o', 'b', ' ',
-      '\0', ' ',
-      'b', 'i', 'n', 'a', 'r', 'y', ' ',
-      'd', 'a', 't', 'a', ' ',
-      0xF0, 0x9F, 0xA4, 0xAF,  // UTF-8 bytes for 🤯
-      ' ',
-      't', 'h', 'a', 't', ' ',
-      'i', 's', ' ',
-      'n', 'o', 't', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'l', 'o', 'n', 'g', ',', ' ',
-      'i', 's', ' ',
-      'i', 't', '?',
+      's', 'o', 'm',  'e',  ' ',  'b',  'l', 'o', 'b', ' ', '\0',
+      ' ', 'b', 'i',  'n',  'a',  'r',  'y', ' ', 'd', 'a', 't',
+      'a', ' ', 0xF0, 0x9F, 0xA4, 0xAF,  // UTF-8 bytes for 🤯
+      ' ', 't', 'h',  'a',  't',  ' ',  'i', 's', ' ', 'n', 'o',
+      't', ' ', 'v',  'e',  'r',  'y',  ' ', 'v', 'e', 'r', 'y',
+      ' ', 'v', 'e',  'r',  'y',  ' ',  'v', 'e', 'r', 'y', ' ',
+      'v', 'e', 'r',  'y',  ' ',  'v',  'e', 'r', 'y', ' ', 'l',
+      'o', 'n', 'g',  ',',  ' ',  'i',  's', ' ', 'i', 't', '?',
   };
-  auto blob2_result = writer->write_blob(
-      binary_data.data(),
-      binary_data.size(),
-      "some-other-blob",
-      std::vector<int>{2},
-      2,  // snapshot_id
-      1   // sequence_number
+  auto blob2_result = writer->write_blob(binary_data.data(), binary_data.size(),
+                                         "some-other-blob", std::vector<int>{2},
+                                         2,  // snapshot_id
+                                         1   // sequence_number
   );
   ASSERT_TRUE(blob2_result.ok()) << blob2_result.error().message;
 
@@ -157,8 +144,10 @@ TEST_F(IcypuffWriterTest, WriteMetricDataUncompressed) {
   ASSERT_TRUE(close_result.ok()) << close_result.error().message;
 
   // Compare with reference file
-  auto reference_file = TestResources::CreateInputFile("v1/sample-metric-data-uncompressed.bin");
-  auto reference_data = reference_file->read_at(0, reference_file->length().value());
+  auto reference_file =
+      TestResources::CreateInputFile("v1/sample-metric-data-uncompressed.bin");
+  auto reference_data =
+      reference_file->read_at(0, reference_file->length().value());
   ASSERT_TRUE(reference_data.ok()) << reference_data.error().message;
 
   auto input_file = TestResources::CreateInputFile(filename);
@@ -171,13 +160,13 @@ TEST_F(IcypuffWriterTest, WriteMetricDataUncompressed) {
 
   std::cout << "Output bytes:" << std::endl;
   for (size_t i = 0; i < output_bytes.size(); i++) {
-    std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') 
+    std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
               << static_cast<int>(output_bytes[i]) << " ";
     if ((i + 1) % 16 == 0) std::cout << std::endl;
   }
   std::cout << std::endl;
 
-  std::cout << "Reference bytes:" << std::endl; 
+  std::cout << "Reference bytes:" << std::endl;
   for (size_t i = 0; i < reference_bytes.size(); i++) {
     std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
               << static_cast<int>(reference_bytes[i]) << " ";
@@ -185,66 +174,52 @@ TEST_F(IcypuffWriterTest, WriteMetricDataUncompressed) {
   }
   std::cout << std::endl;
 
-  for (size_t i = 0; i < std::min(output_bytes.size(), reference_bytes.size()); i++) {
+  for (size_t i = 0; i < std::min(output_bytes.size(), reference_bytes.size());
+       i++) {
     if (output_bytes[i] != reference_bytes[i]) {
-      FAIL() << "Files differ at position " << i 
-             << ": output=0x" << std::hex << static_cast<int>(output_bytes[i])
-             << " reference=0x" << static_cast<int>(reference_bytes[i]);
+      FAIL() << "Files differ at position " << i << ": output=0x" << std::hex
+             << static_cast<int>(output_bytes[i]) << " reference=0x"
+             << static_cast<int>(reference_bytes[i]);
     }
   }
 }
 
 TEST_F(IcypuffWriterTest, WriteMetricDataCompressedZstd) {
-  std::string filename = generate_uuid() + "-sample-metric-data-compressed-zstd.bin";
+  std::string filename =
+      generate_uuid() + "-sample-metric-data-compressed-zstd.bin";
   auto output_file = TestResources::CreateOutputFile(filename);
   auto writer_result = Icypuff::write(std::move(output_file))
-                          .created_by("Test 1234")
-                          .compress_blobs(CompressionCodec::Zstd)
-                          .build();
+                           .created_by("Test 1234")
+                           .compress_blobs(CompressionCodec::Zstd)
+                           .build();
   ASSERT_TRUE(writer_result.ok()) << writer_result.error().message;
   auto writer = std::move(writer_result).value();
 
   // Write first blob
   std::string data1 = "abcdefghi";
-  auto blob1_result = writer->write_blob(
-      reinterpret_cast<const uint8_t*>(data1.data()),
-      data1.size(),
-      "some-blob",
-      std::vector<int>{1},
-      2,  // snapshot_id
-      1   // sequence_number
-  );
+  auto blob1_result =
+      writer->write_blob(reinterpret_cast<const uint8_t*>(data1.data()),
+                         data1.size(), "some-blob", std::vector<int>{1},
+                         2,  // snapshot_id
+                         1   // sequence_number
+      );
   ASSERT_TRUE(blob1_result.ok()) << blob1_result.error().message;
 
   // Create binary data with null character and emoji
   std::vector<uint8_t> binary_data = {
-      's', 'o', 'm', 'e', ' ',
-      'b', 'l', 'o', 'b', ' ',
-      '\0', ' ',
-      'b', 'i', 'n', 'a', 'r', 'y', ' ',
-      'd', 'a', 't', 'a', ' ',
-      0xF0, 0x9F, 0xA4, 0xAF,  // UTF-8 bytes for 🤯
-      ' ',
-      't', 'h', 'a', 't', ' ',
-      'i', 's', ' ',
-      'n', 'o', 't', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'v', 'e', 'r', 'y', ' ',
-      'l', 'o', 'n', 'g', ',', ' ',
-      'i', 's', ' ',
-      'i', 't', '?',
+      's', 'o', 'm',  'e',  ' ',  'b',  'l', 'o', 'b', ' ', '\0',
+      ' ', 'b', 'i',  'n',  'a',  'r',  'y', ' ', 'd', 'a', 't',
+      'a', ' ', 0xF0, 0x9F, 0xA4, 0xAF,  // UTF-8 bytes for 🤯
+      ' ', 't', 'h',  'a',  't',  ' ',  'i', 's', ' ', 'n', 'o',
+      't', ' ', 'v',  'e',  'r',  'y',  ' ', 'v', 'e', 'r', 'y',
+      ' ', 'v', 'e',  'r',  'y',  ' ',  'v', 'e', 'r', 'y', ' ',
+      'v', 'e', 'r',  'y',  ' ',  'v',  'e', 'r', 'y', ' ', 'l',
+      'o', 'n', 'g',  ',',  ' ',  'i',  's', ' ', 'i', 't', '?',
   };
-  auto blob2_result = writer->write_blob(
-      binary_data.data(),
-      binary_data.size(),
-      "some-other-blob",
-      std::vector<int>{2},
-      2,  // snapshot_id
-      1   // sequence_number
+  auto blob2_result = writer->write_blob(binary_data.data(), binary_data.size(),
+                                         "some-other-blob", std::vector<int>{2},
+                                         2,  // snapshot_id
+                                         1   // sequence_number
   );
   ASSERT_TRUE(blob2_result.ok()) << blob2_result.error().message;
 
@@ -271,8 +246,10 @@ TEST_F(IcypuffWriterTest, WriteMetricDataCompressedZstd) {
   ASSERT_TRUE(close_result.ok()) << close_result.error().message;
 
   // Compare with reference file
-  auto reference_file = TestResources::CreateInputFile("v1/sample-metric-data-compressed-zstd.bin");
-  auto reference_data = reference_file->read_at(0, reference_file->length().value());
+  auto reference_file = TestResources::CreateInputFile(
+      "v1/sample-metric-data-compressed-zstd.bin");
+  auto reference_data =
+      reference_file->read_at(0, reference_file->length().value());
   ASSERT_TRUE(reference_data.ok()) << reference_data.error().message;
 
   auto input_file = TestResources::CreateInputFile(filename);
@@ -285,13 +262,13 @@ TEST_F(IcypuffWriterTest, WriteMetricDataCompressedZstd) {
 
   std::cout << "Output bytes:" << std::endl;
   for (size_t i = 0; i < output_bytes.size(); i++) {
-    std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') 
+    std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
               << static_cast<int>(output_bytes[i]) << " ";
     if ((i + 1) % 16 == 0) std::cout << std::endl;
   }
   std::cout << std::endl;
 
-  std::cout << "Reference bytes:" << std::endl; 
+  std::cout << "Reference bytes:" << std::endl;
   for (size_t i = 0; i < reference_bytes.size(); i++) {
     std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
               << static_cast<int>(reference_bytes[i]) << " ";
@@ -299,14 +276,15 @@ TEST_F(IcypuffWriterTest, WriteMetricDataCompressedZstd) {
   }
   std::cout << std::endl;
 
-  for (size_t i = 0; i < std::min(output_bytes.size(), reference_bytes.size()); i++) {
+  for (size_t i = 0; i < std::min(output_bytes.size(), reference_bytes.size());
+       i++) {
     if (output_bytes[i] != reference_bytes[i]) {
-      FAIL() << "Files differ at position " << i 
-             << ": output=0x" << std::hex << static_cast<int>(output_bytes[i])
-             << " reference=0x" << static_cast<int>(reference_bytes[i]);
+      FAIL() << "Files differ at position " << i << ": output=0x" << std::hex
+             << static_cast<int>(output_bytes[i]) << " reference=0x"
+             << static_cast<int>(reference_bytes[i]);
     }
   }
 }
 
 }  // namespace
-}  // namespace icypuff 
+}  // namespace icypuff

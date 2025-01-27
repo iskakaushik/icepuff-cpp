@@ -48,10 +48,9 @@ Result<std::unique_ptr<IcypuffWriter>> IcypuffWriteBuilder::build() {
     return {ErrorCode::kInvalidArgument, "Output file is null"};
   }
 
-  return std::make_unique<IcypuffWriter>(std::move(output_file_),
-                                        std::move(properties_),
-                                        compress_footer_,
-                                        default_blob_compression_);
+  return std::make_unique<IcypuffWriter>(
+      std::move(output_file_), std::move(properties_), compress_footer_,
+      default_blob_compression_);
 }
 
 // IcypuffReadBuilder implementation
@@ -73,9 +72,8 @@ Result<std::unique_ptr<IcypuffReader>> IcypuffReadBuilder::build() {
     return {ErrorCode::kInvalidArgument, "Input file is null"};
   }
 
-  return std::make_unique<IcypuffReader>(std::move(input_file_),
-                                        file_size_,
-                                        footer_size_);
+  return std::make_unique<IcypuffReader>(std::move(input_file_), file_size_,
+                                         footer_size_);
 }
 
 // Static factory methods

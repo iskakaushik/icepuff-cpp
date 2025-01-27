@@ -1,7 +1,8 @@
 #include "icypuff/local_output_file.h"
 
-#include <fstream>
 #include <spdlog/spdlog.h>
+
+#include <fstream>
 
 #include "icypuff/local_input_file.h"
 #include "icypuff/position_output_stream.h"
@@ -20,7 +21,8 @@ class LocalPositionOutputStream : public PositionOutputStream {
       spdlog::error("Failed to open output stream for path: {}", path.string());
       return;  // Error will be handled by caller
     }
-    spdlog::debug("Successfully opened output stream for path: {}", path.string());
+    spdlog::debug("Successfully opened output stream for path: {}",
+                  path.string());
   }
 
   Result<void> write(const uint8_t* buffer, size_t length) override {
@@ -103,14 +105,17 @@ Result<std::unique_ptr<PositionOutputStream>> LocalOutputFile::create() {
 
 Result<std::unique_ptr<PositionOutputStream>>
 LocalOutputFile::create_or_overwrite() {
-  spdlog::debug("Attempting to create or overwrite file at: {}", path_.string());
+  spdlog::debug("Attempting to create or overwrite file at: {}",
+                path_.string());
   auto stream = std::make_unique<LocalPositionOutputStream>(path_, true);
   if (!stream->is_valid()) {
-    spdlog::error("Failed to create or overwrite file at path: {}", path_.string());
+    spdlog::error("Failed to create or overwrite file at path: {}",
+                  path_.string());
     return Result<std::unique_ptr<PositionOutputStream>>{
         ErrorCode::kInvalidArgument, "Failed to create file"};
   }
-  spdlog::debug("Successfully created or overwrote file at: {}", path_.string());
+  spdlog::debug("Successfully created or overwrote file at: {}",
+                path_.string());
   return Result<std::unique_ptr<PositionOutputStream>>{std::move(stream)};
 }
 
