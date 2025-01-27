@@ -4,7 +4,9 @@
 #include <spdlog/spdlog.h>
 #include <zstd.h>
 
+#include <ios>
 #include <memory>
+#include <sstream>
 #include <vector>
 
 #include "icypuff/compression_codec.h"
