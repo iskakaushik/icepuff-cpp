@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <memory>
+#include <lz4frame.h>
+#include <zstd.h>
 
 #include "icypuff/file_metadata_parser.h"
 
@@ -93,8 +95,80 @@ Result<std::vector<uint8_t>> IcypuffReader::read_blob(const BlobMetadata& blob) 
         ErrorCode::kInvalidArgument, "Failed to read complete blob data");
   }
   
-  // TODO: Handle decompression based on blob.compression_codec()
-  return data;
+  return decompress_data(data, blob.compression_codec());
+}
+
+Result<std::vector<uint8_t>> IcypuffReader::decompress_data(
+    const std::vector<uint8_t>& data,
+    const std::optional<std::string>& codec_name) {
+  
+  auto codec = GetCodecFromName(codec_name);
+  if (!codec.has_value()) {
+    return {ErrorCode::kUnknownCodec, "Unknown compression codec: " + codec_name.value_or("none")};
+  }
+
+  switch (codec.value()) {
+    case CompressionCodec::None:
+      return data;
+
+    case CompressionCodec::Lz4: {
+      // Get decompressed size from LZ4 frame
+      LZ4F_decompressionContext_t ctx;
+      auto err = LZ4F_createDecompressionContext(&ctx, LZ4F_VERSION);
+      if (LZ4F_isError(err)) {
+        return {ErrorCode::kInvalidArgument, "Failed to create LZ4 decompression context"};
+      }
+
+      size_t src_size = data.size();
+      size_t dest_size = 0;
+      err = LZ4F_getFrameInfo(ctx, nullptr, data.data(), &src_size);
+      if (LZ4F_isError(err)) {
+        LZ4F_freeDecompressionContext(ctx);
+        return {ErrorCode::kInvalidArgument, "Failed to get LZ4 frame info"};
+      }
+
+      // Allocate output buffer (LZ4 frame header contains the decompressed size)
+      std::vector<uint8_t> decompressed(err);  // err contains the decompressed size
+      size_t decompressed_size = decompressed.size();
+      
+      err = LZ4F_decompress(ctx, decompressed.data(), &decompressed_size,
+                           data.data(), &src_size, nullptr);
+      LZ4F_freeDecompressionContext(ctx);
+      
+      if (LZ4F_isError(err)) {
+        return {ErrorCode::kInvalidArgument, "Failed to decompress LZ4 data"};
+      }
+      
+      decompressed.resize(decompressed_size);
+      return decompressed;
+    }
+
+    case CompressionCodec::Zstd: {
+      // Get decompressed size from Zstd frame
+      unsigned long long const decompressed_size = ZSTD_getFrameContentSize(data.data(), data.size());
+      if (decompressed_size == ZSTD_CONTENTSIZE_ERROR) {
+        return {ErrorCode::kInvalidArgument, "Invalid Zstd data"};
+      }
+      if (decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
+        return {ErrorCode::kInvalidArgument, "Unknown Zstd content size"};
+      }
+
+      // Allocate output buffer
+      std::vector<uint8_t> decompressed(decompressed_size);
+      
+      size_t const err = ZSTD_decompress(decompressed.data(), decompressed.size(),
+                                       data.data(), data.size());
+      if (ZSTD_isError(err)) {
+        return {ErrorCode::kInvalidArgument, "Failed to decompress Zstd data"};
+      }
+      
+      decompressed.resize(err);
+      return decompressed;
+    }
+  }
+
+  // Should never reach here since we handle all enum values
+  return {ErrorCode::kUnknownCodec, "Unknown compression codec"};
 }
 
 Result<void> IcypuffReader::close() {
@@ -134,25 +208,63 @@ Result<void> IcypuffReader::read_file_metadata() {
     return magic_check;
   }
   
-  // TODO: Handle footer compression based on flags
-  
   int footer_payload_size = *reinterpret_cast<const int*>(
       &footer_data.value()[footer_struct_offset + FOOTER_STRUCT_PAYLOAD_SIZE_OFFSET]);
   
   if (footer_size != FOOTER_START_MAGIC_LENGTH + footer_payload_size + FOOTER_STRUCT_LENGTH) {
     return Result<void>(ErrorCode::kInvalidArgument, "Invalid footer payload size");
   }
+
+  auto json_result = decompress_footer(footer_data.value(), footer_struct_offset, footer_payload_size);
+  if (!json_result.ok()) {
+    return Result<void>(json_result.error().code, json_result.error().message);
+  }
   
-  std::string json_str(reinterpret_cast<const char*>(&footer_data.value()[MAGIC_LENGTH]), 
-                      footer_payload_size);
-  
-  auto metadata_result = FileMetadataParser::FromJson(json_str);
+  auto metadata_result = FileMetadataParser::FromJson(json_result.value());
   if (!metadata_result.ok()) {
     return Result<void>(metadata_result.error().code, metadata_result.error().message);
   }
   
   known_file_metadata_ = std::move(metadata_result).value();
   return Result<void>();
+}
+
+Result<std::string> IcypuffReader::decompress_footer(
+    const std::vector<uint8_t>& footer_data,
+    int footer_struct_offset,
+    int footer_payload_size) {
+  // Read compression flags
+  uint32_t flags = *reinterpret_cast<const uint32_t*>(
+      &footer_data[footer_struct_offset + FOOTER_STRUCT_FLAGS_OFFSET]);
+  
+  // Extract the footer data
+  std::vector<uint8_t> footer_payload(
+      footer_data.begin() + MAGIC_LENGTH,
+      footer_data.begin() + MAGIC_LENGTH + footer_payload_size);
+
+  // Bit 0 indicates LZ4 compression
+  // Bit 1 indicates Zstd compression
+  std::optional<std::string> compression_codec;
+  if (flags & 0x1) {
+    compression_codec = "lz4";
+  } else if (flags & 0x2) {
+    compression_codec = "zstd";
+  }
+
+  // Decompress the footer data if needed
+  if (compression_codec.has_value()) {
+    auto decompressed = decompress_data(footer_payload, compression_codec);
+    if (!decompressed.ok()) {
+      std::string error_msg = "Failed to decompress footer: ";
+      error_msg += decompressed.error().message;
+      return Result<std::string>(decompressed.error().code, error_msg);
+    }
+    return std::string(reinterpret_cast<const char*>(decompressed.value().data()),
+                      decompressed.value().size());
+  }
+  
+  return std::string(reinterpret_cast<const char*>(footer_payload.data()),
+                    footer_payload.size());
 }
 
 Result<int> IcypuffReader::get_footer_size() {

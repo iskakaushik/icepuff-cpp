@@ -98,7 +98,6 @@ if(ICYPUFF_BUILD_TESTS)
     
     # Add test executable
     add_executable(icypuff_tests
-        tests/hello_world_test.cpp
         tests/file_metadata_parser_test.cpp
     )
     

@@ -3,6 +3,6 @@
 #include "icypuff/icypuff.h"
 
 int main() {
-  std::cout << icypuff::HelloWorld() << '\n';
+  std::cout << "Hello, World!" << '\n';
   return 0;
 }

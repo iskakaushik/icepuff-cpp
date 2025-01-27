@@ -12,6 +12,7 @@
 #include "icypuff/blob_metadata.h"
 #include "icypuff/seekable_input_stream.h"
 #include "icypuff/format_constants.h"
+#include "icypuff/compression_codec.h"
 
 namespace icypuff {
 
@@ -47,6 +48,11 @@ class IcypuffReader {
   Result<int> get_footer_size();
   Result<std::vector<uint8_t>> read_input(int64_t offset, int length);
   Result<void> check_magic(const std::vector<uint8_t>& data, int offset);
+  Result<std::vector<uint8_t>> decompress_data(const std::vector<uint8_t>& data, 
+                                              const std::optional<std::string>& codec_name);
+  Result<std::string> decompress_footer(const std::vector<uint8_t>& footer_data,
+                                      int footer_struct_offset,
+                                      int footer_payload_size);
 
   // Member variables
   std::unique_ptr<InputFile> input_file_;
