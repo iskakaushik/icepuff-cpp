@@ -88,24 +88,23 @@ Result<std::unique_ptr<BlobMetadata>> ParseBlobMetadata(
   return BlobMetadata::Create(params);
 }
 
-nlohmann::json SerializeBlobMetadata(const BlobMetadata& metadata) {
-  nlohmann::json json;
+nlohmann::ordered_json SerializeBlobMetadata(const BlobMetadata& metadata) {
+  nlohmann::ordered_json json;
 
   // Maintain field order to match test expectations
-  json.emplace(FileMetadataParser::kType, metadata.type());
-  json.emplace(FileMetadataParser::kFields, metadata.input_fields());
-  json.emplace(FileMetadataParser::kSnapshotId, metadata.snapshot_id());
-  json.emplace(FileMetadataParser::kSequenceNumber, metadata.sequence_number());
-  json.emplace(FileMetadataParser::kOffset, metadata.offset());
-  json.emplace(FileMetadataParser::kLength, metadata.length());
-
-  if (!metadata.properties().empty()) {
-    json.emplace(FileMetadataParser::kProperties, metadata.properties());
-  }
+  json[FileMetadataParser::kType] = metadata.type();
+  json[FileMetadataParser::kFields] = metadata.input_fields();
+  json[FileMetadataParser::kSnapshotId] = metadata.snapshot_id();
+  json[FileMetadataParser::kSequenceNumber] = metadata.sequence_number();
+  json[FileMetadataParser::kOffset] = metadata.offset();
+  json[FileMetadataParser::kLength] = metadata.length();
 
   if (metadata.compression_codec()) {
-    json.emplace(FileMetadataParser::kCompressionCodec,
-                 *metadata.compression_codec());
+    json[FileMetadataParser::kCompressionCodec] = *metadata.compression_codec();
+  }
+
+  if (!metadata.properties().empty()) {
+    json[FileMetadataParser::kProperties] = metadata.properties();
   }
 
   return json;
@@ -115,18 +114,18 @@ nlohmann::json SerializeBlobMetadata(const BlobMetadata& metadata) {
 
 Result<std::string> FileMetadataParser::ToJson(const FileMetadata& metadata,
                                                bool pretty) {
-  nlohmann::json json;
+  nlohmann::ordered_json json;
 
   // Serialize blobs
-  json.emplace(kBlobs, nlohmann::json::array());
+  json[kBlobs] = nlohmann::ordered_json::array();
   for (const auto& blob : metadata.blobs()) {
     auto blob_json = SerializeBlobMetadata(*blob);
-    json.at(kBlobs).push_back(blob_json);
+    json[kBlobs].push_back(nlohmann::ordered_json(blob_json));
   }
 
   // Serialize properties if not empty
   if (!metadata.properties().empty()) {
-    json.emplace(kProperties, metadata.properties());
+    json[kProperties] = metadata.properties();
   }
 
   // Return formatted string with specific indentation

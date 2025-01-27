@@ -10,6 +10,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Set UTF-8 encoding for source files
+if(MSVC)
+    add_compile_options(/utf-8)
+else()
+    add_compile_options(-finput-charset=UTF-8)
+endif()
+
 # Options
 option(ICYPUFF_BUILD_EXAMPLES "Build example applications" ON)
 

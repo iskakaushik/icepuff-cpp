@@ -28,7 +28,7 @@ IcypuffWriteBuilder& IcypuffWriteBuilder::set_all(
 
 IcypuffWriteBuilder& IcypuffWriteBuilder::created_by(
     const std::string& application_identifier) {
-  properties_["created_by"] = application_identifier;
+  properties_["created-by"] = application_identifier;
   return *this;
 }
 
