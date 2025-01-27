@@ -7,7 +7,7 @@ namespace icypuff {
 
 enum class CompressionCodec {
   None,  // No compression
-  Lz4,   // LZ4 single compression frame with content size present 
+  Lz4,   // LZ4 single compression frame with content size present
   Zstd   // Zstandard single compression frame with content size present
 };
 

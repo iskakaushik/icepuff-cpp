@@ -24,8 +24,6 @@ class FileMetadata {
   FileMetadata(FileMetadata&&) = default;
   FileMetadata& operator=(FileMetadata&&) = default;
 
-  ICYPUFF_DISALLOW_COPY_AND_ASSIGN(FileMetadata);
-
   ~FileMetadata();
 
   // Getters
@@ -33,10 +31,12 @@ class FileMetadata {
   const std::unordered_map<std::string, std::string>& properties() const;
 
  private:
+  ICYPUFF_DISALLOW_COPY_AND_ASSIGN(FileMetadata);
+
   explicit FileMetadata(FileMetadataParams&& params);
 
   std::vector<std::unique_ptr<BlobMetadata>> blobs_;
   std::unordered_map<std::string, std::string> properties_;
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff

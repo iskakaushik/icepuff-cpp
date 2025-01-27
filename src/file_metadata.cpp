@@ -11,7 +11,7 @@ Result<FileMetadata> FileMetadata::Create(FileMetadataParams&& params) {
 
 FileMetadata::FileMetadata(FileMetadataParams&& params)
     : blobs_(std::make_move_iterator(params.blobs.begin()),
-            std::make_move_iterator(params.blobs.end())),
+             std::make_move_iterator(params.blobs.end())),
       properties_(std::move(params.properties)) {}
 
 FileMetadata::~FileMetadata() = default;
@@ -25,4 +25,4 @@ const std::unordered_map<std::string, std::string>& FileMetadata::properties()
   return properties_;
 }
 
-}  // namespace icypuff 
+}  // namespace icypuff
