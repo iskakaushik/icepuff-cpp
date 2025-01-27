@@ -5,20 +5,16 @@ project(icypuff
     DESCRIPTION "A simple C++ library"
 )
 
-# Enforce C++17 and disable exceptions
+# Enforce C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(MSVC)
-  string(REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  add_compile_definitions(_HAS_EXCEPTIONS=0)
-else()
-  add_compile_options(-fno-exceptions)
-endif()
-
 # Options
 option(ICYPUFF_BUILD_EXAMPLES "Build example applications" ON)
+
+# Global definitions
+add_compile_definitions(SPDLOG_NO_EXCEPTIONS=ON)
 
 # Dependencies
 find_package(fmt CONFIG REQUIRED)
@@ -74,6 +70,14 @@ target_include_directories(icypuff
         $<INSTALL_INTERFACE:include>
 )
 
+# Disable exceptions for our targets only
+if(MSVC)
+    target_compile_options(icypuff PRIVATE /EHs-c-)
+    target_compile_definitions(icypuff PRIVATE _HAS_EXCEPTIONS=0)
+else()
+    target_compile_options(icypuff PRIVATE -fno-exceptions)
+endif()
+
 target_link_libraries(icypuff
     PUBLIC
         fmt::fmt
@@ -122,6 +126,14 @@ if(ICYPUFF_BUILD_TESTS)
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/tests
     )
+    
+    # Disable exceptions for tests
+    if(MSVC)
+        target_compile_options(icypuff_tests PRIVATE /EHs-c-)
+        target_compile_definitions(icypuff_tests PRIVATE _HAS_EXCEPTIONS=0)
+    else()
+        target_compile_options(icypuff_tests PRIVATE -fno-exceptions)
+    endif()
     
     target_link_libraries(icypuff_tests
         PRIVATE

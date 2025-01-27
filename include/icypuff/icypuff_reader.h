@@ -7,9 +7,7 @@
 #include <vector>
 
 #include "icypuff/blob_metadata.h"
-#include "icypuff/compression_codec.h"
 #include "icypuff/file_metadata.h"
-#include "icypuff/format_constants.h"
 #include "icypuff/input_file.h"
 #include "icypuff/result.h"
 #include "icypuff/seekable_input_stream.h"
