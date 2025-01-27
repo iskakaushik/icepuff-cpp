@@ -1,6 +1,5 @@
 #include "icypuff/local_input_file.h"
 
-#include <errno.h>
 #include <spdlog/spdlog.h>
 #include <sys/stat.h>
 

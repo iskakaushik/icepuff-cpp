@@ -21,7 +21,8 @@ class LocalPositionOutputStream : public PositionOutputStream {
   }
 
   Result<void> write(const uint8_t* buffer, size_t length) override {
-    stream_.write(reinterpret_cast<const char*>(buffer), length);
+    stream_.write(static_cast<const char*>(static_cast<const void*>(buffer)),
+                  length);
     if (stream_.bad()) {
       return Result<void>{ErrorCode::kInvalidArgument,
                           "Failed to write to file"};

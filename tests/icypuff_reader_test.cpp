@@ -16,10 +16,12 @@ namespace {
 using ::icypuff::testing::TestResources;
 
 // Test constants
-static constexpr int EMPTY_PUFFIN_UNCOMPRESSED_FOOTER_SIZE =
+constexpr int EMPTY_PUFFIN_UNCOMPRESSED_FOOTER_SIZE =
     28;  // 4 (magic) + 4 (payload size) + 4 (flags) + 4 (magic) + 12 (payload)
-static constexpr int SAMPLE_METRIC_DATA_COMPRESSED_ZSTD_FOOTER_SIZE =
+constexpr int SAMPLE_METRIC_DATA_COMPRESSED_ZSTD_FOOTER_SIZE =
     314;  // From Java reference implementation
+constexpr int SMALL_FOOTER_DELTA = 10;
+constexpr int LARGE_FOOTER_DELTA = 10000;
 
 class IcypuffReaderTest : public ::testing::Test {
  protected:
@@ -94,10 +96,10 @@ TEST_F(IcypuffReaderTest, WrongFooterSize) {
   const int64_t footer_size = SAMPLE_METRIC_DATA_COMPRESSED_ZSTD_FOOTER_SIZE;
   test_wrong_footer_size(footer_size - 1);
   test_wrong_footer_size(footer_size + 1);
-  test_wrong_footer_size(footer_size - 10);
-  test_wrong_footer_size(footer_size + 10);
-  test_wrong_footer_size(footer_size - 10000);
-  test_wrong_footer_size(footer_size + 10000);
+  test_wrong_footer_size(footer_size - SMALL_FOOTER_DELTA);
+  test_wrong_footer_size(footer_size + SMALL_FOOTER_DELTA);
+  test_wrong_footer_size(footer_size - LARGE_FOOTER_DELTA);
+  test_wrong_footer_size(footer_size + LARGE_FOOTER_DELTA);
 
   // Additional test cases for boundary conditions
   test_wrong_footer_size(FOOTER_START_MAGIC_LENGTH +
