@@ -4,6 +4,9 @@
   "dependencies": [
     "fmt",
     "nlohmann-json",
-    "gtest"
+    "gtest",
+    "lz4",
+    "zstd",
+    "spdlog"
   ]
 }

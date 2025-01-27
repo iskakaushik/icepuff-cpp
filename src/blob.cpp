@@ -15,13 +15,13 @@ Result<std::unique_ptr<Blob>> Blob::Create(const BlobParams& params) {
 }
 
 Blob::Blob(const BlobParams& params)
-    : type_(std::move(params.type)),
-      input_fields_(std::move(params.input_fields)),
+    : type_(params.type),
+      input_fields_(params.input_fields),
       snapshot_id_(params.snapshot_id),
       sequence_number_(params.sequence_number),
-      blob_data_(std::move(params.blob_data)),
+      blob_data_(params.blob_data),
       requested_compression_(params.requested_compression),
-      properties_(std::move(params.properties)) {}
+      properties_(params.properties) {}
 
 Blob::~Blob() = default;
 

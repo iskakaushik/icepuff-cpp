@@ -21,14 +21,14 @@ Result<std::unique_ptr<BlobMetadata>> BlobMetadata::Create(
 }
 
 BlobMetadata::BlobMetadata(const BlobMetadataParams& params)
-    : type_(std::move(params.type)),
-      input_fields_(std::move(params.input_fields)),
+    : type_(params.type),
+      input_fields_(params.input_fields),
       snapshot_id_(params.snapshot_id),
       sequence_number_(params.sequence_number),
       offset_(params.offset),
       length_(params.length),
-      compression_codec_(std::move(params.compression_codec)),
-      properties_(std::move(params.properties)) {}
+      compression_codec_(params.compression_codec),
+      properties_(params.properties) {}
 
 BlobMetadata::~BlobMetadata() = default;
 

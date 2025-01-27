@@ -25,7 +25,8 @@ struct BlobMetadataParams {
 class BlobMetadata {
  public:
   // Factory method that returns a unique_ptr to ensure ownership semantics
-  static Result<std::unique_ptr<BlobMetadata>> Create(const BlobMetadataParams& params);
+  static Result<std::unique_ptr<BlobMetadata>> Create(
+      const BlobMetadataParams& params);
 
   // Constructor is public but ownership is still enforced through unique_ptr
   explicit BlobMetadata(const BlobMetadataParams& params);
