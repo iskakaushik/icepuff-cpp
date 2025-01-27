@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 
+#include "icypuff/compression_codec.h"
 #include "icypuff/file_metadata_parser.h"
 #include "icypuff/format_constants.h"
 
