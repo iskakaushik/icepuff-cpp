@@ -12,10 +12,11 @@ namespace testing {
 class TestResources {
  public:
   static std::filesystem::path GetResourcePath(const std::string& resource_name) {
-    return std::filesystem::path("tests/resources") / resource_name;
+    return std::filesystem::current_path() / "tests/resources" / resource_name;
   }
 
   static void EnsureResourceDirectories() {
+    // No need to create files, they should already exist
     std::filesystem::create_directories(GetResourcePath("v1"));
   }
 

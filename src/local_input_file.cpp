@@ -2,6 +2,9 @@
 
 #include <fstream>
 #include <system_error>
+#include <spdlog/spdlog.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "icypuff/seekable_input_stream.h"
 
@@ -14,16 +17,21 @@ class LocalSeekableInputStream : public SeekableInputStream {
   explicit LocalSeekableInputStream(const std::filesystem::path& path)
       : stream_(path, std::ios::binary) {
     if (!stream_) {
-      return;  // Error will be handled by caller
+      spdlog::error("Failed to open stream for file: {}", path.string());
+      return;
     }
+    spdlog::debug("Successfully opened stream for file: {}", path.string());
   }
 
   Result<size_t> read(uint8_t* buffer, size_t length) override {
     stream_.read(reinterpret_cast<char*>(buffer), length);
     if (stream_.bad()) {
+      spdlog::error("Failed to read {} bytes from stream", length);
       return Result<size_t>{ErrorCode::kInvalidArgument, "Failed to read from file"};
     }
-    return Result<size_t>{static_cast<size_t>(stream_.gcount())};
+    auto bytes_read = static_cast<size_t>(stream_.gcount());
+    spdlog::debug("Successfully read {} bytes from stream", bytes_read);
+    return Result<size_t>{bytes_read};
   }
 
   Result<void> skip(int64_t length) override {
@@ -66,25 +74,35 @@ class LocalSeekableInputStream : public SeekableInputStream {
 
 }  // namespace
 
-LocalInputFile::LocalInputFile(const std::string& path) : path_(path) {}
+LocalInputFile::LocalInputFile(const std::string& path) : path_(std::filesystem::absolute(path)) {
+  spdlog::debug("Created LocalInputFile from string path: {}", path_.string());
+}
 
-LocalInputFile::LocalInputFile(const std::filesystem::path& path) : path_(path) {}
+LocalInputFile::LocalInputFile(const std::filesystem::path& path) : path_(std::filesystem::absolute(path)) {
+  spdlog::debug("Created LocalInputFile from filesystem path: {}", path_.string());
+}
 
 Result<int64_t> LocalInputFile::length() const {
   std::error_code ec;
   auto size = std::filesystem::file_size(path_, ec);
   if (ec) {
+    spdlog::error("Failed to get file size for {}: {}", path_.string(), ec.message());
     return Result<int64_t>{ErrorCode::kInvalidArgument, ec.message()};
   }
+  
+  spdlog::debug("File size for {}: {}", path_.string(), size);
   return Result<int64_t>{static_cast<int64_t>(size)};
 }
 
 Result<std::unique_ptr<SeekableInputStream>> LocalInputFile::new_stream() const {
+  spdlog::debug("Creating new stream for file: {}", path_.string());
   auto stream = std::make_unique<LocalSeekableInputStream>(path_);
   if (!stream->is_valid()) {
+    spdlog::error("Failed to create valid stream for file: {}", path_.string());
     return Result<std::unique_ptr<SeekableInputStream>>{
         ErrorCode::kInvalidArgument, "Failed to open file"};
   }
+  spdlog::debug("Successfully created stream for file: {}", path_.string());
   return Result<std::unique_ptr<SeekableInputStream>>{std::move(stream)};
 }
 
@@ -93,7 +111,9 @@ std::string LocalInputFile::location() const {
 }
 
 bool LocalInputFile::exists() const {
-  return std::filesystem::exists(path_);
+  bool exists = std::filesystem::exists(path_);
+  spdlog::debug("File {} {}", path_.string(), exists ? "exists" : "does not exist");
+  return exists;
 }
 
 }  // namespace icypuff 

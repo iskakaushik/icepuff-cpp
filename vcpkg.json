@@ -6,6 +6,7 @@
     "nlohmann-json",
     "gtest",
     "lz4",
-    "zstd"
+    "zstd",
+    "spdlog"
   ]
 }

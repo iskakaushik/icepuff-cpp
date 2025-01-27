@@ -5,15 +5,37 @@
 namespace icypuff {
 
 // Magic bytes and lengths
-static constexpr uint8_t MAGIC[] = {0x50, 0x46, 0x46, 0x4E};  // "PFFN"
+static constexpr uint8_t MAGIC[] = {0x50, 0x46, 0x41, 0x31};  // "PFA1"
 static constexpr int MAGIC_LENGTH = 4;
 
-// Footer structure
-static constexpr int FOOTER_STRUCT_LENGTH = 16;
+// Footer structure offsets and lengths
+static constexpr int FOOTER_START_MAGIC_OFFSET = 0;
+static constexpr int FOOTER_START_MAGIC_LENGTH = MAGIC_LENGTH;
+
+static constexpr int FOOTER_STRUCT_PAYLOAD_SIZE_OFFSET = 0;
+static constexpr int FOOTER_STRUCT_FLAGS_OFFSET = FOOTER_STRUCT_PAYLOAD_SIZE_OFFSET + 4;
 static constexpr int FOOTER_STRUCT_FLAGS_LENGTH = 4;
-static constexpr int FOOTER_STRUCT_FLAGS_OFFSET = 4;
-static constexpr int FOOTER_STRUCT_PAYLOAD_SIZE_OFFSET = 8;
-static constexpr int FOOTER_STRUCT_MAGIC_OFFSET = 12;
-static constexpr int FOOTER_START_MAGIC_LENGTH = 4;
+static constexpr int FOOTER_STRUCT_MAGIC_OFFSET = FOOTER_STRUCT_FLAGS_OFFSET + FOOTER_STRUCT_FLAGS_LENGTH;
+static constexpr int FOOTER_STRUCT_LENGTH = FOOTER_STRUCT_MAGIC_OFFSET + MAGIC_LENGTH;
+
+// Footer flags
+enum class FooterFlag {
+  FOOTER_PAYLOAD_COMPRESSED = 0  // byte 0, bit 0
+};
+
+// Helper functions for reading/writing integers in little endian
+inline uint32_t read_integer_little_endian(const uint8_t* data, int offset) {
+  return static_cast<uint32_t>(data[offset]) |
+         (static_cast<uint32_t>(data[offset + 1]) << 8) |
+         (static_cast<uint32_t>(data[offset + 2]) << 16) |
+         (static_cast<uint32_t>(data[offset + 3]) << 24);
+}
+
+inline void write_integer_little_endian(uint8_t* data, int offset, uint32_t value) {
+  data[offset] = value & 0xFF;
+  data[offset + 1] = (value >> 8) & 0xFF;
+  data[offset + 2] = (value >> 16) & 0xFF;
+  data[offset + 3] = (value >> 24) & 0xFF;
+}
 
 }  // namespace icypuff 

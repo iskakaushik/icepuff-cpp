@@ -25,6 +25,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(lz4 CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 # Collect source files
 set(ICYPUFF_SOURCES
@@ -79,6 +80,7 @@ target_link_libraries(icypuff
         nlohmann_json::nlohmann_json
         lz4::lz4
         $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
+        spdlog::spdlog
 )
 
 # Set source groups for better IDE organization
@@ -127,6 +129,9 @@ if(ICYPUFF_BUILD_TESTS)
             GTest::gtest
             GTest::gtest_main
     )
+    
+    # Copy test resources to build directory
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests)
     
     add_test(NAME icypuff_tests COMMAND icypuff_tests)
 endif()
