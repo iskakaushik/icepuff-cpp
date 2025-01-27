@@ -23,6 +23,8 @@ option(ICYPUFF_BUILD_EXAMPLES "Build example applications" ON)
 # Dependencies
 find_package(fmt CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(lz4 CONFIG REQUIRED)
+find_package(zstd CONFIG REQUIRED)
 
 # Collect source files
 set(ICYPUFF_SOURCES
@@ -75,6 +77,8 @@ target_link_libraries(icypuff
     PUBLIC
         fmt::fmt
         nlohmann_json::nlohmann_json
+        lz4::lz4
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
 )
 
 # Set source groups for better IDE organization
@@ -96,9 +100,25 @@ if(ICYPUFF_BUILD_TESTS)
     enable_testing()
     find_package(GTest CONFIG REQUIRED)
     
+    # Test sources
+    set(ICYPUFF_TEST_SOURCES
+        tests/file_metadata_parser_test.cpp
+        tests/icypuff_reader_test.cpp
+    )
+
+    set(ICYPUFF_TEST_HEADERS
+        tests/test_resources.h
+    )
+    
     # Add test executable
     add_executable(icypuff_tests
-        tests/file_metadata_parser_test.cpp
+        ${ICYPUFF_TEST_SOURCES}
+        ${ICYPUFF_TEST_HEADERS}
+    )
+    
+    target_include_directories(icypuff_tests
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests
     )
     
     target_link_libraries(icypuff_tests
