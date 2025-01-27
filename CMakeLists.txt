@@ -22,6 +22,7 @@ option(ICYPUFF_BUILD_EXAMPLES "Build example applications" ON)
 
 # Dependencies
 find_package(fmt CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 # Collect source files
 set(ICYPUFF_SOURCES
@@ -59,6 +60,7 @@ target_include_directories(icypuff
 target_link_libraries(icypuff
     PUBLIC
         fmt::fmt
+        nlohmann_json::nlohmann_json
 )
 
 # Set source groups for better IDE organization
