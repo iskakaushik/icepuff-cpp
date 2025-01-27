@@ -31,6 +31,8 @@ set(ICYPUFF_SOURCES
     src/blob_metadata.cpp
     src/file_metadata.cpp
     src/file_metadata_parser.cpp
+    src/local_input_file.cpp
+    src/local_output_file.cpp
 )
 
 set(ICYPUFF_HEADERS
@@ -43,6 +45,14 @@ set(ICYPUFF_HEADERS
     include/icypuff/blob_metadata.h
     include/icypuff/file_metadata.h
     include/icypuff/file_metadata_parser.h
+    include/icypuff/input_file.h
+    include/icypuff/output_file.h
+    include/icypuff/seekable_input_stream.h
+    include/icypuff/position_output_stream.h
+    include/icypuff/local_input_file.h
+    include/icypuff/local_output_file.h
+    include/icypuff/icypuff_writer.h
+    include/icypuff/icypuff_reader.h
 )
 
 # Library
