@@ -1,12 +1,19 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 namespace icypuff {
 
 // Magic bytes and lengths
 static constexpr uint8_t MAGIC[] = {0x50, 0x46, 0x41, 0x31};  // "PFA1"
 static constexpr int MAGIC_LENGTH = 4;
+
+// Error messages
+static constexpr std::string_view ERROR_INVALID_MAGIC = "Invalid file: expected magic at offset";
+static constexpr std::string_view ERROR_INVALID_FOOTER_SIZE = "Invalid footer size";
+static constexpr std::string_view ERROR_READER_NOT_INITIALIZED = "Reader is not initialized";
+static constexpr std::string_view ERROR_INCOMPLETE_BLOB_READ = "Failed to read complete blob data";
 
 // Footer structure offsets and lengths
 static constexpr int FOOTER_START_MAGIC_OFFSET = 0;

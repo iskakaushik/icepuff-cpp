@@ -8,8 +8,29 @@ namespace icypuff {
 enum class ErrorCode {
   kOk = 0,
   kInvalidArgument,
-  kUnknownCodec,
-  kUnimplemented,
+  
+  // File format errors
+  kInvalidMagic,           // Magic bytes don't match
+  kInvalidFooterSize,      // Footer size is invalid
+  kInvalidFooterPayload,   // Footer payload is malformed
+  kInvalidFileLength,      // File is too short
+  
+  // Stream errors
+  kStreamNotInitialized,   // Reader/Writer stream not initialized
+  kStreamSeekError,        // Failed to seek in stream
+  kStreamReadError,        // Failed to read from stream
+  kStreamWriteError,       // Failed to write to stream
+  kIncompleteRead,         // Read fewer bytes than requested
+  kIncompleteWrite,        // Wrote fewer bytes than requested
+  
+  // Compression errors
+  kUnknownCodec,           // Unknown compression codec
+  kCompressionError,       // Error during compression
+  kDecompressionError,     // Error during decompression
+  
+  // Other errors
+  kUnimplemented,          // Feature not implemented
+  kInternalError,          // Unexpected internal error
 };
 
 struct ResultError {

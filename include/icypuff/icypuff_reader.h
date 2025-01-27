@@ -60,6 +60,10 @@ class IcypuffReader {
   int64_t file_size_;
   std::optional<int> known_footer_size_;
   std::unique_ptr<FileMetadata> known_file_metadata_;
+
+  // Error state
+  ErrorCode error_code_ = ErrorCode::kOk;
+  std::string error_message_;
 };
 
 }  // namespace icypuff 

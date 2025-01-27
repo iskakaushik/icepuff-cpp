@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #include "icypuff/file_metadata_parser.h"
+#include "icypuff/format_constants.h"
 
 namespace icypuff {
 
@@ -28,8 +29,16 @@ IcypuffReader::IcypuffReader(std::unique_ptr<InputFile> input_file,
   if (footer_size.has_value()) {
     int64_t size = footer_size.value();
     spdlog::debug("Using provided footer size: {}", size);
-    if (size <= FOOTER_START_MAGIC_LENGTH + FOOTER_STRUCT_LENGTH || size > file_size_) {
+    if (size <= FOOTER_START_MAGIC_LENGTH + FOOTER_STRUCT_LENGTH) {
       spdlog::error("Invalid footer size: {}", size);
+      error_code_ = ErrorCode::kInvalidFooterSize;
+      error_message_ = ERROR_INVALID_FOOTER_SIZE;
+      return;
+    }
+    if (size > file_size_) {
+      spdlog::error("Footer size {} larger than file size {}", size, file_size_);
+      error_code_ = ErrorCode::kInvalidFileLength;
+      error_message_ = "Footer size larger than file size";
       return;
     }
     known_footer_size_ = static_cast<int>(size);
@@ -38,6 +47,8 @@ IcypuffReader::IcypuffReader(std::unique_ptr<InputFile> input_file,
   auto stream_result = input_file_->new_stream();
   if (!stream_result.ok()) {
     spdlog::error("Failed to create input stream: {}", stream_result.error().message);
+    error_code_ = ErrorCode::kStreamNotInitialized;
+    error_message_ = ERROR_READER_NOT_INITIALIZED;
     return;
   }
   input_stream_ = std::move(stream_result).value();
@@ -45,9 +56,13 @@ IcypuffReader::IcypuffReader(std::unique_ptr<InputFile> input_file,
 }
 
 Result<std::vector<std::unique_ptr<BlobMetadata>>> IcypuffReader::get_blobs() {
+  if (error_code_ != ErrorCode::kOk) {
+    return Result<std::vector<std::unique_ptr<BlobMetadata>>>(error_code_, error_message_);
+  }
+  
   if (!input_stream_) {
     return Result<std::vector<std::unique_ptr<BlobMetadata>>>(
-        ErrorCode::kInvalidArgument, "Invalid file: expected magic at offset");
+        ErrorCode::kStreamNotInitialized, ERROR_READER_NOT_INITIALIZED);
   }
   
   auto metadata_result = read_file_metadata();
@@ -88,25 +103,25 @@ const std::unordered_map<std::string, std::string>& IcypuffReader::properties() 
 Result<std::vector<uint8_t>> IcypuffReader::read_blob(const BlobMetadata& blob) {
   if (!input_stream_) {
     return Result<std::vector<uint8_t>>(
-        ErrorCode::kInvalidArgument, "Reader is not initialized");
+        ErrorCode::kStreamNotInitialized, ERROR_READER_NOT_INITIALIZED);
   }
   
   auto seek_result = input_stream_->seek(blob.offset());
   if (!seek_result.ok()) {
     return Result<std::vector<uint8_t>>(
-        seek_result.error().code, seek_result.error().message);
+        ErrorCode::kStreamSeekError, seek_result.error().message);
   }
   
   std::vector<uint8_t> data(blob.length());
   auto read_result = input_stream_->read(data.data(), data.size());
   if (!read_result.ok()) {
     return Result<std::vector<uint8_t>>(
-        read_result.error().code, read_result.error().message);
+        ErrorCode::kStreamReadError, read_result.error().message);
   }
   
   if (read_result.value() != data.size()) {
     return Result<std::vector<uint8_t>>(
-        ErrorCode::kInvalidArgument, "Failed to read complete blob data");
+        ErrorCode::kIncompleteRead, ERROR_INCOMPLETE_BLOB_READ);
   }
   
   return decompress_data(data, blob.compression_codec());
@@ -130,7 +145,7 @@ Result<std::vector<uint8_t>> IcypuffReader::decompress_data(
       LZ4F_decompressionContext_t ctx;
       auto err = LZ4F_createDecompressionContext(&ctx, LZ4F_VERSION);
       if (LZ4F_isError(err)) {
-        return {ErrorCode::kInvalidArgument, "Failed to create LZ4 decompression context"};
+        return {ErrorCode::kDecompressionError, "Failed to create LZ4 decompression context"};
       }
 
       size_t src_size = data.size();
@@ -138,11 +153,10 @@ Result<std::vector<uint8_t>> IcypuffReader::decompress_data(
       err = LZ4F_getFrameInfo(ctx, nullptr, data.data(), &src_size);
       if (LZ4F_isError(err)) {
         LZ4F_freeDecompressionContext(ctx);
-        return {ErrorCode::kInvalidArgument, "Failed to get LZ4 frame info"};
+        return {ErrorCode::kDecompressionError, "Failed to get LZ4 frame info"};
       }
 
-      // Allocate output buffer (LZ4 frame header contains the decompressed size)
-      std::vector<uint8_t> decompressed(err);  // err contains the decompressed size
+      std::vector<uint8_t> decompressed(err);
       size_t decompressed_size = decompressed.size();
       
       err = LZ4F_decompress(ctx, decompressed.data(), &decompressed_size,
@@ -150,7 +164,7 @@ Result<std::vector<uint8_t>> IcypuffReader::decompress_data(
       LZ4F_freeDecompressionContext(ctx);
       
       if (LZ4F_isError(err)) {
-        return {ErrorCode::kInvalidArgument, "Failed to decompress LZ4 data"};
+        return {ErrorCode::kDecompressionError, "Failed to decompress LZ4 data"};
       }
       
       decompressed.resize(decompressed_size);
@@ -158,22 +172,20 @@ Result<std::vector<uint8_t>> IcypuffReader::decompress_data(
     }
 
     case CompressionCodec::Zstd: {
-      // Get decompressed size from Zstd frame
       unsigned long long const decompressed_size = ZSTD_getFrameContentSize(data.data(), data.size());
       if (decompressed_size == ZSTD_CONTENTSIZE_ERROR) {
-        return {ErrorCode::kInvalidArgument, "Invalid Zstd data"};
+        return {ErrorCode::kDecompressionError, "Invalid Zstd data"};
       }
       if (decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
-        return {ErrorCode::kInvalidArgument, "Unknown Zstd content size"};
+        return {ErrorCode::kDecompressionError, "Unknown Zstd content size"};
       }
 
-      // Allocate output buffer
       std::vector<uint8_t> decompressed(decompressed_size);
       
       size_t const err = ZSTD_decompress(decompressed.data(), decompressed.size(),
                                        data.data(), data.size());
       if (ZSTD_isError(err)) {
-        return {ErrorCode::kInvalidArgument, "Failed to decompress Zstd data"};
+        return {ErrorCode::kDecompressionError, "Failed to decompress Zstd data"};
       }
       
       decompressed.resize(err);
@@ -181,8 +193,7 @@ Result<std::vector<uint8_t>> IcypuffReader::decompress_data(
     }
   }
 
-  // Should never reach here since we handle all enum values
-  return {ErrorCode::kUnknownCodec, "Unknown compression codec"};
+  return {ErrorCode::kInternalError, "Unknown compression codec"};
 }
 
 Result<void> IcypuffReader::close() {
@@ -210,19 +221,19 @@ Result<void> IcypuffReader::read_file_metadata() {
   
   auto footer_data = read_input(file_size_ - footer_size, footer_size);
   if (!footer_data.ok()) {
-    return Result<void>(footer_data.error().code, "Invalid footer size");
+    return Result<void>(ErrorCode::kInvalidFooterSize, ERROR_INVALID_FOOTER_SIZE);
   }
   spdlog::debug("Successfully read {} bytes of footer data", footer_data.value().size());
   
   auto magic_check = check_magic(footer_data.value(), FOOTER_START_MAGIC_OFFSET);
   if (!magic_check.ok()) {
-    return Result<void>(magic_check.error().code, "Invalid file: expected magic at offset");
+    return Result<void>(ErrorCode::kInvalidMagic, ERROR_INVALID_MAGIC);
   }
   
   int footer_struct_offset = footer_size - FOOTER_STRUCT_LENGTH;
   magic_check = check_magic(footer_data.value(), footer_struct_offset + FOOTER_STRUCT_MAGIC_OFFSET);
   if (!magic_check.ok()) {
-    return Result<void>(magic_check.error().code, "Invalid file: expected magic at offset");
+    return Result<void>(ErrorCode::kInvalidMagic, ERROR_INVALID_MAGIC);
   }
   
   int footer_payload_size = read_integer_little_endian(
@@ -230,7 +241,7 @@ Result<void> IcypuffReader::read_file_metadata() {
   spdlog::debug("Footer payload size: {}", footer_payload_size);
   
   if (footer_size != FOOTER_START_MAGIC_LENGTH + footer_payload_size + FOOTER_STRUCT_LENGTH) {
-    return Result<void>(ErrorCode::kInvalidArgument, "Invalid footer size");
+    return Result<void>(ErrorCode::kInvalidFooterSize, ERROR_INVALID_FOOTER_SIZE);
   }
 
   // Extract the footer payload (JSON data) between the start magic and footer struct
@@ -241,7 +252,7 @@ Result<void> IcypuffReader::read_file_metadata() {
   
   auto metadata_result = FileMetadataParser::FromJson(json_data);
   if (!metadata_result.ok()) {
-    return Result<void>(metadata_result.error().code, metadata_result.error().message);
+    return Result<void>(ErrorCode::kInvalidFooterPayload, metadata_result.error().message);
   }
   
   known_file_metadata_ = std::move(metadata_result).value();
@@ -255,7 +266,7 @@ Result<int> IcypuffReader::get_footer_size() {
   }
   
   if (file_size_ < FOOTER_STRUCT_LENGTH) {
-    return Result<int>(ErrorCode::kInvalidArgument, 
+    return Result<int>(ErrorCode::kInvalidFileLength, 
                       "Invalid file: file length " + std::to_string(file_size_) + 
                       " is less than minimal length of the footer tail " + 
                       std::to_string(FOOTER_STRUCT_LENGTH));
@@ -263,12 +274,12 @@ Result<int> IcypuffReader::get_footer_size() {
   
   auto footer_struct = read_input(file_size_ - FOOTER_STRUCT_LENGTH, FOOTER_STRUCT_LENGTH);
   if (!footer_struct.ok()) {
-    return Result<int>(footer_struct.error().code, "Invalid footer size");
+    return Result<int>(ErrorCode::kInvalidFooterSize, ERROR_INVALID_FOOTER_SIZE);
   }
   
   auto magic_check = check_magic(footer_struct.value(), FOOTER_STRUCT_MAGIC_OFFSET);
   if (!magic_check.ok()) {
-    return Result<int>(magic_check.error().code, "Invalid footer size");
+    return Result<int>(ErrorCode::kInvalidMagic, ERROR_INVALID_MAGIC);
   }
   
   int footer_payload_size = read_integer_little_endian(footer_struct.value().data(), 
@@ -277,18 +288,18 @@ Result<int> IcypuffReader::get_footer_size() {
   int total_footer_size = FOOTER_START_MAGIC_LENGTH + footer_payload_size + FOOTER_STRUCT_LENGTH;
   if (total_footer_size <= FOOTER_START_MAGIC_LENGTH + FOOTER_STRUCT_LENGTH || 
       total_footer_size > file_size_) {
-    return Result<int>(ErrorCode::kInvalidArgument, "Invalid footer size");
+    return Result<int>(ErrorCode::kInvalidFooterSize, ERROR_INVALID_FOOTER_SIZE);
   }
   
   // Verify start magic
   auto start_magic = read_input(file_size_ - total_footer_size, FOOTER_START_MAGIC_LENGTH);
   if (!start_magic.ok()) {
-    return Result<int>(start_magic.error().code, "Invalid footer size");
+    return Result<int>(ErrorCode::kInvalidFooterSize, ERROR_INVALID_FOOTER_SIZE);
   }
   
   auto start_magic_check = check_magic(start_magic.value(), FOOTER_START_MAGIC_OFFSET);
   if (!start_magic_check.ok()) {
-    return Result<int>(start_magic_check.error().code, "Invalid footer size");
+    return Result<int>(ErrorCode::kInvalidMagic, ERROR_INVALID_MAGIC);
   }
   
   known_footer_size_ = total_footer_size;
@@ -297,32 +308,26 @@ Result<int> IcypuffReader::get_footer_size() {
 
 Result<std::vector<uint8_t>> IcypuffReader::read_input(int64_t offset, int length) {
   if (!input_stream_) {
-    spdlog::error("Reader is not initialized");
     return Result<std::vector<uint8_t>>(
-        ErrorCode::kInvalidArgument, "Reader is not initialized");
+        ErrorCode::kStreamNotInitialized, ERROR_READER_NOT_INITIALIZED);
   }
   
   auto seek_result = input_stream_->seek(offset);
   if (!seek_result.ok()) {
-    spdlog::error("Failed to seek to offset {}: {}", offset, seek_result.error().message);
     return Result<std::vector<uint8_t>>(
-        seek_result.error().code, seek_result.error().message);
+        ErrorCode::kStreamSeekError, seek_result.error().message);
   }
   
   std::vector<uint8_t> data(length);
   auto read_result = input_stream_->read(data.data(), data.size());
   if (!read_result.ok()) {
-    spdlog::error("Failed to read {} bytes at offset {}: {}", 
-                 length, offset, read_result.error().message);
     return Result<std::vector<uint8_t>>(
-        read_result.error().code, read_result.error().message);
+        ErrorCode::kStreamReadError, read_result.error().message);
   }
   
   if (read_result.value() != data.size()) {
-    spdlog::error("Incomplete read: expected {} bytes, got {} bytes",
-                 data.size(), read_result.value());
     return Result<std::vector<uint8_t>>(
-        ErrorCode::kInvalidArgument, "Failed to read complete data");
+        ErrorCode::kIncompleteRead, ERROR_INCOMPLETE_BLOB_READ);
   }
   
   spdlog::debug("Successfully read {} bytes at offset {}", length, offset);
@@ -331,7 +336,7 @@ Result<std::vector<uint8_t>> IcypuffReader::read_input(int64_t offset, int lengt
 
 Result<void> IcypuffReader::check_magic(const std::vector<uint8_t>& data, int offset) {
   if (offset + MAGIC_LENGTH > data.size()) {
-    return Result<void>(ErrorCode::kInvalidArgument, 
+    return Result<void>(ErrorCode::kInvalidFileLength, 
                        "Not enough data to check magic: need " + std::to_string(MAGIC_LENGTH) + 
                        " bytes, have " + std::to_string(data.size() - offset) + " bytes");
   }
@@ -342,7 +347,7 @@ Result<void> IcypuffReader::check_magic(const std::vector<uint8_t>& data, int of
       error_msg << "Invalid file: expected magic at offset " << offset << ": ";
       error_msg << "expected " << std::hex << static_cast<int>(MAGIC[i]) 
                 << ", got " << static_cast<int>(data[offset + i]) << " at position " << i;
-      return Result<void>(ErrorCode::kInvalidArgument, error_msg.str());
+      return Result<void>(ErrorCode::kInvalidMagic, error_msg.str());
     }
   }
   

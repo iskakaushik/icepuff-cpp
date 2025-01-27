@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 
 #include "icypuff/icypuff_reader.h"
+#include "icypuff/format_constants.h"
 #include "test_resources.h"
 
 namespace icypuff {
@@ -55,7 +56,12 @@ TEST_F(IcypuffReaderTest, EmptyWithUnknownFooterSize) {
 }
 
 TEST_F(IcypuffReaderTest, WrongFooterSize) {
-  auto test_wrong_footer_size = [this](int64_t wrong_size, const std::string& expected_prefix) {
+  auto input_file = TestResources::CreateInputFile("v1/sample-metric-data-compressed-zstd.bin");
+  auto length_result = input_file->length();
+  ASSERT_TRUE(length_result.ok()) << length_result.error().message;
+  const int64_t file_length = length_result.value();
+  
+  auto test_wrong_footer_size = [this, file_length](int64_t wrong_size) {
     auto input_file = TestResources::CreateInputFile("v1/sample-metric-data-compressed-zstd.bin");
     auto length_result = input_file->length();
     ASSERT_TRUE(length_result.ok()) << length_result.error().message;
@@ -64,17 +70,30 @@ TEST_F(IcypuffReaderTest, WrongFooterSize) {
     auto blobs_result = reader.get_blobs();
     
     ASSERT_FALSE(blobs_result.ok());
-    EXPECT_EQ(blobs_result.error().code, ErrorCode::kInvalidArgument);
-    EXPECT_EQ(blobs_result.error().message.substr(0, expected_prefix.size()), expected_prefix);
+    // Check for specific error code based on the type of error
+    if (wrong_size <= FOOTER_START_MAGIC_LENGTH + FOOTER_STRUCT_LENGTH) {
+      EXPECT_EQ(blobs_result.error().code, ErrorCode::kInvalidFooterSize);
+      EXPECT_EQ(blobs_result.error().message, ERROR_INVALID_FOOTER_SIZE);
+    } else if (wrong_size > file_length) {
+      EXPECT_EQ(blobs_result.error().code, ErrorCode::kInvalidFileLength);
+    } else {
+      EXPECT_EQ(blobs_result.error().code, ErrorCode::kInvalidMagic);
+      EXPECT_EQ(blobs_result.error().message, ERROR_INVALID_MAGIC);
+    }
   };
 
   const int64_t footer_size = SAMPLE_METRIC_DATA_COMPRESSED_ZSTD_FOOTER_SIZE;
-  test_wrong_footer_size(footer_size - 1, "Invalid file: expected magic at offset");
-  test_wrong_footer_size(footer_size + 1, "Invalid file: expected magic at offset");
-  test_wrong_footer_size(footer_size - 10, "Invalid file: expected magic at offset");
-  test_wrong_footer_size(footer_size + 10, "Invalid file: expected magic at offset");
-  test_wrong_footer_size(footer_size - 10000, "Invalid file: expec");
-  test_wrong_footer_size(footer_size + 10000, "Invalid file: expec");
+  test_wrong_footer_size(footer_size - 1);
+  test_wrong_footer_size(footer_size + 1);
+  test_wrong_footer_size(footer_size - 10);
+  test_wrong_footer_size(footer_size + 10);
+  test_wrong_footer_size(footer_size - 10000);
+  test_wrong_footer_size(footer_size + 10000);
+  
+  // Additional test cases for boundary conditions
+  test_wrong_footer_size(FOOTER_START_MAGIC_LENGTH + FOOTER_STRUCT_LENGTH);  // Minimum size
+  test_wrong_footer_size(FOOTER_START_MAGIC_LENGTH + FOOTER_STRUCT_LENGTH - 1);  // Too small
+  test_wrong_footer_size(file_length + 1);  // Too large
 }
 
 TEST_F(IcypuffReaderTest, ReadMetricDataUncompressed) {
