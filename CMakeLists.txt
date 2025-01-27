@@ -13,6 +13,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Options
 option(ICYPUFF_BUILD_EXAMPLES "Build example applications" ON)
 
+# Global definitions
+add_compile_definitions(SPDLOG_NO_EXCEPTIONS=ON)
+
 # Dependencies
 find_package(fmt CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
