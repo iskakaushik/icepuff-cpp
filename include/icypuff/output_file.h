@@ -4,8 +4,8 @@
 #include <string>
 
 #include "icypuff/input_file.h"
-#include "icypuff/result.h"
 #include "icypuff/position_output_stream.h"
+#include "icypuff/result.h"
 namespace icypuff {
 
 class OutputFile {
@@ -18,7 +18,8 @@ class OutputFile {
 
   // Create a new file and return a PositionOutputStream to it.
   // If the file already exists, it will be overwritten.
-  virtual Result<std::unique_ptr<PositionOutputStream>> create_or_overwrite() = 0;
+  virtual Result<std::unique_ptr<PositionOutputStream>>
+  create_or_overwrite() = 0;
 
   // Return the location this output file will create
   virtual std::string location() const = 0;
@@ -27,4 +28,4 @@ class OutputFile {
   virtual Result<std::unique_ptr<InputFile>> to_input_file() const = 0;
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff

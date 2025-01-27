@@ -25,4 +25,4 @@ class InputFile {
   virtual bool exists() const = 0;
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff

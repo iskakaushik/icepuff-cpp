@@ -14,15 +14,14 @@ class IcypuffWriter {
   virtual ~IcypuffWriter() = default;
 
   // Write a blob to the file
-  virtual Result<void> write_blob(const uint8_t* data,
-                                size_t length,
-                                const std::string& type,
-                                const std::vector<int>& fields,
-                                int64_t snapshot_id,
-                                int64_t sequence_number) = 0;
+  virtual Result<void> write_blob(const uint8_t* data, size_t length,
+                                  const std::string& type,
+                                  const std::vector<int>& fields,
+                                  int64_t snapshot_id,
+                                  int64_t sequence_number) = 0;
 
   // Close the file and write the footer
   virtual Result<void> close() = 0;
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff

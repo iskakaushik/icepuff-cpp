@@ -1,18 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <optional>
 
+#include "icypuff/blob_metadata.h"
+#include "icypuff/compression_codec.h"
+#include "icypuff/file_metadata.h"
+#include "icypuff/format_constants.h"
 #include "icypuff/input_file.h"
 #include "icypuff/result.h"
-#include "icypuff/file_metadata.h"
-#include "icypuff/blob_metadata.h"
 #include "icypuff/seekable_input_stream.h"
-#include "icypuff/format_constants.h"
-#include "icypuff/compression_codec.h"
 
 namespace icypuff {
 
@@ -22,7 +22,7 @@ class BlobMetadata;
 class IcypuffReader {
  public:
   // Constructor
-  IcypuffReader(std::unique_ptr<InputFile> input_file, 
+  IcypuffReader(std::unique_ptr<InputFile> input_file,
                 std::optional<int64_t> file_size = std::nullopt,
                 std::optional<int64_t> footer_size = std::nullopt);
 
@@ -48,11 +48,12 @@ class IcypuffReader {
   Result<int> get_footer_size();
   Result<std::vector<uint8_t>> read_input(int64_t offset, int length);
   Result<void> check_magic(const std::vector<uint8_t>& data, int offset);
-  Result<std::vector<uint8_t>> decompress_data(const std::vector<uint8_t>& data, 
-                                              const std::optional<std::string>& codec_name);
+  Result<std::vector<uint8_t>> decompress_data(
+      const std::vector<uint8_t>& data,
+      const std::optional<std::string>& codec_name);
   Result<std::string> decompress_footer(const std::vector<uint8_t>& footer_data,
-                                      int footer_struct_offset,
-                                      int footer_payload_size);
+                                        int footer_struct_offset,
+                                        int footer_payload_size);
 
   // Member variables
   std::unique_ptr<InputFile> input_file_;
@@ -66,4 +67,4 @@ class IcypuffReader {
   std::string error_message_;
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff

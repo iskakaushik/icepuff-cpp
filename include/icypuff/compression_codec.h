@@ -24,7 +24,8 @@ inline std::optional<std::string_view> GetCodecName(CompressionCodec codec) {
   return std::nullopt;
 }
 
-inline std::optional<CompressionCodec> GetCodecFromName(const std::optional<std::string>& name) {
+inline std::optional<CompressionCodec> GetCodecFromName(
+    const std::optional<std::string>& name) {
   if (!name.has_value()) {
     return CompressionCodec::None;
   }

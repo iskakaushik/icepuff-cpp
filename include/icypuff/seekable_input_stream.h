@@ -28,4 +28,4 @@ class SeekableInputStream {
   virtual Result<void> close() = 0;
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff

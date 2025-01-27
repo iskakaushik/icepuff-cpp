@@ -21,10 +21,12 @@ class IcypuffWriteBuilder {
   explicit IcypuffWriteBuilder(std::unique_ptr<OutputFile> output_file);
 
   // Sets file-level property to be written
-  IcypuffWriteBuilder& set(const std::string& property, const std::string& value);
+  IcypuffWriteBuilder& set(const std::string& property,
+                           const std::string& value);
 
   // Sets file-level properties to be written
-  IcypuffWriteBuilder& set_all(const std::unordered_map<std::string, std::string>& props);
+  IcypuffWriteBuilder& set_all(
+      const std::unordered_map<std::string, std::string>& props);
 
   // Sets file-level created_by property
   IcypuffWriteBuilder& created_by(const std::string& application_identifier);

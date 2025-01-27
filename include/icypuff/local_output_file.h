@@ -22,4 +22,4 @@ class LocalOutputFile : public OutputFile {
   std::filesystem::path path_;
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff

@@ -10,11 +10,12 @@
 namespace icypuff {
 
 // IcypuffWriteBuilder implementation
-IcypuffWriteBuilder::IcypuffWriteBuilder(std::unique_ptr<OutputFile> output_file)
+IcypuffWriteBuilder::IcypuffWriteBuilder(
+    std::unique_ptr<OutputFile> output_file)
     : output_file_(std::move(output_file)) {}
 
 IcypuffWriteBuilder& IcypuffWriteBuilder::set(const std::string& property,
-                                           const std::string& value) {
+                                              const std::string& value) {
   properties_[property] = value;
   return *this;
 }

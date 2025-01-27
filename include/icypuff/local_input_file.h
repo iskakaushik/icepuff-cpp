@@ -22,4 +22,4 @@ class LocalInputFile : public InputFile {
   std::filesystem::path path_;
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff

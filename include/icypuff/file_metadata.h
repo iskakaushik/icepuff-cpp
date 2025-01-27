@@ -19,7 +19,8 @@ struct FileMetadataParams {
 class FileMetadata {
  public:
   // Factory method that returns a unique_ptr to ensure ownership semantics
-  static Result<std::unique_ptr<FileMetadata>> Create(FileMetadataParams&& params);
+  static Result<std::unique_ptr<FileMetadata>> Create(
+      FileMetadataParams&& params);
 
   // Constructor is public but ownership is still enforced through unique_ptr
   explicit FileMetadata(FileMetadataParams&& params);

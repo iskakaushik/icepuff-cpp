@@ -12,10 +12,9 @@ namespace {
 class LocalPositionOutputStream : public PositionOutputStream {
  public:
   explicit LocalPositionOutputStream(const std::filesystem::path& path,
-                                   bool overwrite)
-      : stream_(path,
-                std::ios::binary | std::ios::out |
-                    (overwrite ? std::ios::trunc : std::ios::app)) {
+                                     bool overwrite)
+      : stream_(path, std::ios::binary | std::ios::out |
+                          (overwrite ? std::ios::trunc : std::ios::app)) {
     if (!stream_) {
       return;  // Error will be handled by caller
     }
@@ -24,7 +23,8 @@ class LocalPositionOutputStream : public PositionOutputStream {
   Result<void> write(const uint8_t* buffer, size_t length) override {
     stream_.write(reinterpret_cast<const char*>(buffer), length);
     if (stream_.bad()) {
-      return Result<void>{ErrorCode::kInvalidArgument, "Failed to write to file"};
+      return Result<void>{ErrorCode::kInvalidArgument,
+                          "Failed to write to file"};
     }
     return Result<void>{};
   }
@@ -33,7 +33,7 @@ class LocalPositionOutputStream : public PositionOutputStream {
     auto pos = stream_.tellp();
     if (pos == -1) {
       return Result<int64_t>{ErrorCode::kInvalidArgument,
-                            "Failed to get position in file"};
+                             "Failed to get position in file"};
     }
     return Result<int64_t>{static_cast<int64_t>(pos)};
   }
@@ -64,7 +64,8 @@ class LocalPositionOutputStream : public PositionOutputStream {
 
 LocalOutputFile::LocalOutputFile(const std::string& path) : path_(path) {}
 
-LocalOutputFile::LocalOutputFile(const std::filesystem::path& path) : path_(path) {}
+LocalOutputFile::LocalOutputFile(const std::filesystem::path& path)
+    : path_(path) {}
 
 Result<std::unique_ptr<PositionOutputStream>> LocalOutputFile::create() {
   if (std::filesystem::exists(path_)) {
@@ -79,7 +80,8 @@ Result<std::unique_ptr<PositionOutputStream>> LocalOutputFile::create() {
   return Result<std::unique_ptr<PositionOutputStream>>{std::move(stream)};
 }
 
-Result<std::unique_ptr<PositionOutputStream>> LocalOutputFile::create_or_overwrite() {
+Result<std::unique_ptr<PositionOutputStream>>
+LocalOutputFile::create_or_overwrite() {
   auto stream = std::make_unique<LocalPositionOutputStream>(path_, true);
   if (!stream->is_valid()) {
     return Result<std::unique_ptr<PositionOutputStream>>{
@@ -88,13 +90,11 @@ Result<std::unique_ptr<PositionOutputStream>> LocalOutputFile::create_or_overwri
   return Result<std::unique_ptr<PositionOutputStream>>{std::move(stream)};
 }
 
-std::string LocalOutputFile::location() const {
-  return path_.string();
-}
+std::string LocalOutputFile::location() const { return path_.string(); }
 
 Result<std::unique_ptr<InputFile>> LocalOutputFile::to_input_file() const {
   return Result<std::unique_ptr<InputFile>>{
       std::make_unique<LocalInputFile>(path_)};
 }
 
-}  // namespace icypuff 
+}  // namespace icypuff

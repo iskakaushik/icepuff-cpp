@@ -14,10 +14,12 @@ class FileMetadataParser {
   FileMetadataParser() = delete;
 
   // Convert FileMetadata to JSON string
-  static Result<std::string> ToJson(const FileMetadata& metadata, bool pretty = false);
+  static Result<std::string> ToJson(const FileMetadata& metadata,
+                                    bool pretty = false);
 
   // Parse FileMetadata from JSON string
-  static Result<std::unique_ptr<FileMetadata>> FromJson(const std::string& json);
+  static Result<std::unique_ptr<FileMetadata>> FromJson(
+      const std::string& json);
 
   // JSON field names
   static constexpr const char* kBlobs = "blobs";
@@ -31,4 +33,4 @@ class FileMetadataParser {
   static constexpr const char* kCompressionCodec = "compression-codec";
 };
 
-}  // namespace icypuff 
+}  // namespace icypuff
