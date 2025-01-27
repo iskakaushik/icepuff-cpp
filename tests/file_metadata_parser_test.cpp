@@ -34,8 +34,11 @@ TEST(FileMetadataParserTest, MinimalFileMetadata) {
     auto json_result = FileMetadataParser::ToJson(*metadata_result.value(), true);
     ASSERT_TRUE(json_result.ok());
 
-    const std::string expected_json = "{\n  \"blobs\": []\n}";
-    EXPECT_EQ(json_result.value(), expected_json);
+    auto parsed_json = nlohmann::json::parse(json_result.value());
+    auto expected_json = nlohmann::json::parse(R"({
+        "blobs": []
+    })");
+    EXPECT_EQ(parsed_json, expected_json);
 
     // Test round-trip
     auto parsed_result = FileMetadataParser::FromJson(json_result.value());
@@ -43,7 +46,8 @@ TEST(FileMetadataParserTest, MinimalFileMetadata) {
     
     auto roundtrip_json = FileMetadataParser::ToJson(*parsed_result.value(), true);
     ASSERT_TRUE(roundtrip_json.ok());
-    EXPECT_EQ(roundtrip_json.value(), expected_json);
+    auto roundtrip_parsed = nlohmann::json::parse(roundtrip_json.value());
+    EXPECT_EQ(roundtrip_parsed, expected_json);
 }
 
 TEST(FileMetadataParserTest, FileProperties) {
@@ -227,16 +231,14 @@ TEST(FileMetadataParserTest, BlobProperties) {
 }
 
 TEST(FileMetadataParserTest, FieldNumberOutOfRange) {
-    std::string json = "{\n"
-        "  \"blobs\": [{\n"
-        "    \"type\": \"type-a\",\n"
-        "    \"fields\": [2147483648],\n"
-        "    \"offset\": 4,\n"
-        "    \"length\": 16\n"
-        "  }]\n"
-        "}";
-
-    auto result = FileMetadataParser::FromJson(json);
+    auto result = FileMetadataParser::FromJson(R"({
+        "blobs": [{
+            "type": "type-a",
+            "fields": [2147483648],
+            "offset": 4,
+            "length": 16
+        }]
+    })");
     EXPECT_FALSE(result.ok());
     EXPECT_EQ(result.error().message, "Cannot parse integer from non-int value in fields: 2147483648");
 }
