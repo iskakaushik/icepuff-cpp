@@ -5,10 +5,17 @@ project(icypuff
     DESCRIPTION "A simple C++ library"
 )
 
-# Enforce C++17
-set(CMAKE_CXX_STANDARD 17)
+# Enforce C++20 and disable exceptions
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Set UTF-8 encoding for source files
+if(MSVC)
+    add_compile_options(/utf-8)
+else()
+    add_compile_options(-finput-charset=UTF-8)
+endif()
 
 # Options
 option(ICYPUFF_BUILD_EXAMPLES "Build example applications" ON)
@@ -33,6 +40,7 @@ set(ICYPUFF_SOURCES
     src/local_input_file.cpp
     src/local_output_file.cpp
     src/icypuff_reader.cpp
+    src/icypuff_writer.cpp
 )
 
 set(ICYPUFF_HEADERS
@@ -110,6 +118,7 @@ if(ICYPUFF_BUILD_TESTS)
     set(ICYPUFF_TEST_SOURCES
         tests/file_metadata_parser_test.cpp
         tests/icypuff_reader_test.cpp
+        tests/icypuff_writer_test.cpp
     )
 
     set(ICYPUFF_TEST_HEADERS

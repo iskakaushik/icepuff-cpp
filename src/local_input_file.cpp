@@ -1,8 +1,10 @@
 #include "icypuff/local_input_file.h"
 
 #include <sys/stat.h>
+
 #include <fstream>
 
+#include "icypuff/format_constants.h"
 #include "icypuff/seekable_input_stream.h"
 
 namespace icypuff {
@@ -94,8 +96,36 @@ Result<std::unique_ptr<SeekableInputStream>> LocalInputFile::new_stream()
 
 std::string LocalInputFile::location() const { return path_.string(); }
 
-bool LocalInputFile::exists() const {
-  return std::filesystem::exists(path_);
+bool LocalInputFile::exists() const { return std::filesystem::exists(path_); }
+
+Result<std::vector<uint8_t>> LocalInputFile::read_at(int64_t offset,
+                                                     int64_t length) const {
+  auto stream_result = new_stream();
+  if (!stream_result.ok()) {
+    return Result<std::vector<uint8_t>>{stream_result.error().code,
+                                        stream_result.error().message};
+  }
+
+  auto stream = std::move(stream_result).value();
+  auto seek_result = stream->seek(offset);
+  if (!seek_result.ok()) {
+    return Result<std::vector<uint8_t>>{seek_result.error().code,
+                                        seek_result.error().message};
+  }
+
+  std::vector<uint8_t> buffer(length);
+  auto read_result = stream->read(buffer.data(), buffer.size());
+  if (!read_result.ok()) {
+    return Result<std::vector<uint8_t>>{read_result.error().code,
+                                        read_result.error().message};
+  }
+
+  if (read_result.value() != length) {
+    return Result<std::vector<uint8_t>>{ErrorCode::kIncompleteRead,
+                                        ERROR_INCOMPLETE_BLOB_READ};
+  }
+
+  return buffer;
 }
 
 }  // namespace icypuff

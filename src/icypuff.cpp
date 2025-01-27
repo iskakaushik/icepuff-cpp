@@ -28,7 +28,7 @@ IcypuffWriteBuilder& IcypuffWriteBuilder::set_all(
 
 IcypuffWriteBuilder& IcypuffWriteBuilder::created_by(
     const std::string& application_identifier) {
-  properties_["created_by"] = application_identifier;
+  properties_["created-by"] = application_identifier;
   return *this;
 }
 
@@ -44,8 +44,13 @@ IcypuffWriteBuilder& IcypuffWriteBuilder::compress_blobs(
 }
 
 Result<std::unique_ptr<IcypuffWriter>> IcypuffWriteBuilder::build() {
-  // TODO: Implement IcypuffWriter creation
-  return {ErrorCode::kUnimplemented, "Not implemented yet"};
+  if (!output_file_) {
+    return {ErrorCode::kInvalidArgument, "Output file is null"};
+  }
+
+  return std::make_unique<IcypuffWriter>(
+      std::move(output_file_), std::move(properties_), compress_footer_,
+      default_blob_compression_);
 }
 
 // IcypuffReadBuilder implementation
@@ -63,8 +68,12 @@ IcypuffReadBuilder& IcypuffReadBuilder::with_footer_size(int64_t size) {
 }
 
 Result<std::unique_ptr<IcypuffReader>> IcypuffReadBuilder::build() {
-  // TODO: Implement IcypuffReader creation
-  return {ErrorCode::kUnimplemented, "Not implemented yet"};
+  if (!input_file_) {
+    return {ErrorCode::kInvalidArgument, "Input file is null"};
+  }
+
+  return std::make_unique<IcypuffReader>(std::move(input_file_), file_size_,
+                                         footer_size_);
 }
 
 // Static factory methods
