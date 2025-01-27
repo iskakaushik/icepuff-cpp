@@ -41,10 +41,11 @@ cmake -B build -S . \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
     -DICYPUFF_BUILD_EXAMPLES=${BUILD_EXAMPLES} \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake
+    -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake \
+    -GNinja
 
 # Build
-cmake --build build --config ${BUILD_TYPE}
+cmake --build build
 
 # Create symlink to compile_commands.json in project root
 if [ -f build/compile_commands.json ]; then
