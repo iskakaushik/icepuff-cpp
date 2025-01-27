@@ -129,22 +129,6 @@ if(ICYPUFF_BUILD_TESTS)
     )
     
     add_test(NAME icypuff_tests COMMAND icypuff_tests)
-
-    # Add test file generator
-    add_executable(generate_test_files
-        tests/generate_test_files.cpp
-        ${ICYPUFF_TEST_HEADERS}
-    )
-
-    target_include_directories(generate_test_files
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests
-    )
-
-    target_link_libraries(generate_test_files
-        PRIVATE
-            icypuff::icypuff
-    )
 endif()
 
 # Installation
