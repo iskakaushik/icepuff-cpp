@@ -11,14 +11,20 @@
 
 namespace icypuff {
 
+struct BlobMetadataParams {
+  std::string type;
+  std::vector<int> input_fields;
+  int64_t snapshot_id;
+  int64_t sequence_number;
+  int64_t offset;
+  int64_t length;
+  std::optional<std::string> compression_codec;
+  std::unordered_map<std::string, std::string> properties;
+};
+
 class BlobMetadata {
  public:
-  // Factory method for creating BlobMetadata
-  static Result<BlobMetadata> Create(
-      std::string type, std::vector<int> input_fields, int64_t snapshot_id,
-      int64_t sequence_number, int64_t offset, int64_t length,
-      std::optional<std::string> compression_codec,
-      std::unordered_map<std::string, std::string> properties);
+  static Result<BlobMetadata> Create(const BlobMetadataParams& params);
 
   // Allow move operations
   BlobMetadata(BlobMetadata&&) = default;
@@ -35,10 +41,7 @@ class BlobMetadata {
   const std::unordered_map<std::string, std::string>& properties() const;
 
  private:
-  BlobMetadata(std::string type, std::vector<int> input_fields,
-               int64_t snapshot_id, int64_t sequence_number, int64_t offset,
-               int64_t length, std::optional<std::string> compression_codec,
-               std::unordered_map<std::string, std::string> properties);
+  explicit BlobMetadata(const BlobMetadataParams& params);
 
   ICYPUFF_DISALLOW_COPY_AND_ASSIGN(BlobMetadata);
 

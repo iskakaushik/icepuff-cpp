@@ -1,9 +1,9 @@
 #include "icypuff/icypuff.h"
 
-#include <fmt/format.h>
-
 namespace icypuff {
 
-std::string HelloWorld() { return fmt::format("Hello, World!"); }
+std::string HelloWorld() {
+  return "Hello from icypuff v0.1.0";
+}
 
 }  // namespace icypuff
