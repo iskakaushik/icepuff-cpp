@@ -1,6 +1,6 @@
 #include <cxxopts.hpp>
-#include <nlohmann/json.hpp>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <random>
 #include <string>
 #include <vector>
@@ -16,12 +16,14 @@ void read_puffin(const std::string& filename) {
   auto input_file = std::make_unique<icypuff::LocalInputFile>(filename);
   auto length_result = input_file->length();
   if (!length_result.ok()) {
-    std::cerr << "Failed to get file length: " << length_result.error().message << std::endl;
+    std::cerr << "Failed to get file length: " << length_result.error().message
+              << std::endl;
     return;
   }
 
-  auto reader = icypuff::IcypuffReader(std::move(input_file), length_result.value());
-  
+  auto reader =
+      icypuff::IcypuffReader(std::move(input_file), length_result.value());
+
   // Print file properties
   std::cout << "File Properties:" << std::endl;
   for (const auto& [key, value] : reader.properties()) {
@@ -31,7 +33,8 @@ void read_puffin(const std::string& filename) {
   // Get and print blob information
   auto blobs_result = reader.get_blobs();
   if (!blobs_result.ok()) {
-    std::cerr << "Failed to read blobs: " << blobs_result.error().message << std::endl;
+    std::cerr << "Failed to read blobs: " << blobs_result.error().message
+              << std::endl;
     return;
   }
 
@@ -54,7 +57,7 @@ void read_puffin(const std::string& filename) {
     auto data = reader.read_blob(*blob);
     if (data.ok()) {
       std::string content(data.value().begin(), data.value().end());
-      if (content.length() < 1000) { // Only show if content is not too long
+      if (content.length() < 1000) {  // Only show if content is not too long
         std::cout << "  Content: " << content << std::endl;
       }
     }
@@ -65,12 +68,13 @@ void read_puffin(const std::string& filename) {
 void write_quote(const std::string& filename) {
   // Some hardcoded quotes for demonstration
   std::vector<std::string> quotes = {
-    "Be yourself; everyone else is already taken. - Oscar Wilde",
-    "Two things are infinite: the universe and human stupidity; and I'm not sure about the universe. - Albert Einstein",
-    "You only live once, but if you do it right, once is enough. - Mae West",
-    "Be the change that you wish to see in the world. - Mahatma Gandhi",
-    "In three words I can sum up everything I've learned about life: it goes on. - Robert Frost"
-  };
+      "Be yourself; everyone else is already taken. - Oscar Wilde",
+      "Two things are infinite: the universe and human stupidity; and I'm not "
+      "sure about the universe. - Albert Einstein",
+      "You only live once, but if you do it right, once is enough. - Mae West",
+      "Be the change that you wish to see in the world. - Mahatma Gandhi",
+      "In three words I can sum up everything I've learned about life: it goes "
+      "on. - Robert Frost"};
 
   // Random quote selection
   std::random_device rd;
@@ -80,15 +84,16 @@ void write_quote(const std::string& filename) {
 
   // Create output file
   auto output_file = std::make_unique<icypuff::LocalOutputFile>(filename);
-  
+
   // Create writer
   auto writer_result = icypuff::Icypuff::write(std::move(output_file))
-    .created_by("IcyPuff Demo App")
-    .compress_blobs(icypuff::CompressionCodec::Zstd)
-    .build();
+                           .created_by("IcyPuff Demo App")
+                           .compress_blobs(icypuff::CompressionCodec::Zstd)
+                           .build();
 
   if (!writer_result.ok()) {
-    std::cerr << "Failed to create writer: " << writer_result.error().message << std::endl;
+    std::cerr << "Failed to create writer: " << writer_result.error().message
+              << std::endl;
     return;
   }
 
@@ -96,23 +101,23 @@ void write_quote(const std::string& filename) {
 
   // Write the quote as a blob
   auto write_result = writer->write_blob(
-    reinterpret_cast<const uint8_t*>(selected_quote.data()),
-    selected_quote.size(),
-    "quote",
-    std::vector<int>{1},  // input field
-    1,                    // snapshot_id
-    1                     // sequence_number
+      reinterpret_cast<const uint8_t*>(selected_quote.data()),
+      selected_quote.size(), "quote", std::vector<int>{1},  // input field
+      1,                                                    // snapshot_id
+      1                                                     // sequence_number
   );
 
   if (!write_result.ok()) {
-    std::cerr << "Failed to write blob: " << write_result.error().message << std::endl;
+    std::cerr << "Failed to write blob: " << write_result.error().message
+              << std::endl;
     return;
   }
 
   // Close the writer
   auto close_result = writer->close();
   if (!close_result.ok()) {
-    std::cerr << "Failed to close writer: " << close_result.error().message << std::endl;
+    std::cerr << "Failed to close writer: " << close_result.error().message
+              << std::endl;
     return;
   }
 
@@ -121,12 +126,14 @@ void write_quote(const std::string& filename) {
 
 int main(int argc, char* argv[]) {
   try {
-    cxxopts::Options options("icypuff-demo", "A demo application for reading and writing Puffin files");
-    
-    options.add_options()
-      ("h,help", "Print usage")
-      ("r,read", "Read a puffin file", cxxopts::value<std::string>())
-      ("w,write", "Write a random quote to a puffin file", cxxopts::value<std::string>());
+    cxxopts::Options options(
+        "icypuff-demo",
+        "A demo application for reading and writing Puffin files");
+
+    options.add_options()("h,help", "Print usage")(
+        "r,read", "Read a puffin file", cxxopts::value<std::string>())(
+        "w,write", "Write a random quote to a puffin file",
+        cxxopts::value<std::string>());
 
     auto result = options.parse(argc, argv);
 
