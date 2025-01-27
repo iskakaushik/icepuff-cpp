@@ -76,6 +76,28 @@ source_group(
     FILES ${ICYPUFF_HEADERS}
 )
 
+# Testing
+option(ICYPUFF_BUILD_TESTS "Build tests" ON)
+if(ICYPUFF_BUILD_TESTS)
+    enable_testing()
+    find_package(GTest CONFIG REQUIRED)
+    
+    # Add test executable
+    add_executable(icypuff_tests
+        tests/hello_world_test.cpp
+        tests/file_metadata_parser_test.cpp
+    )
+    
+    target_link_libraries(icypuff_tests
+        PRIVATE
+            icypuff::icypuff
+            GTest::gtest
+            GTest::gtest_main
+    )
+    
+    add_test(NAME icypuff_tests COMMAND icypuff_tests)
+endif()
+
 # Installation
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
