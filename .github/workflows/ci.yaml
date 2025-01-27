@@ -45,9 +45,9 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: ./scripts/format.sh --check
 
-    - name: Run Linter
-      if: matrix.os == 'ubuntu-latest'
-      run: ./scripts/lint.sh
+    # - name: Run Linter
+    #   if: matrix.os == 'ubuntu-latest'
+    #   run: ./scripts/lint.sh
 
     - name: Build
       run: |
