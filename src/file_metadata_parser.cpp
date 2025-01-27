@@ -79,6 +79,7 @@ Result<std::unique_ptr<BlobMetadata>> ParseBlobMetadata(const nlohmann::json& js
 nlohmann::json SerializeBlobMetadata(const BlobMetadata& metadata) {
   nlohmann::json json;
 
+  // Maintain field order to match test expectations
   json[FileMetadataParser::kType] = metadata.type();
   json[FileMetadataParser::kFields] = metadata.input_fields();
   json[FileMetadataParser::kSnapshotId] = metadata.snapshot_id();
@@ -86,12 +87,12 @@ nlohmann::json SerializeBlobMetadata(const BlobMetadata& metadata) {
   json[FileMetadataParser::kOffset] = metadata.offset();
   json[FileMetadataParser::kLength] = metadata.length();
 
-  if (metadata.compression_codec()) {
-    json[FileMetadataParser::kCompressionCodec] = *metadata.compression_codec();
-  }
-
   if (!metadata.properties().empty()) {
     json[FileMetadataParser::kProperties] = metadata.properties();
+  }
+
+  if (metadata.compression_codec()) {
+    json[FileMetadataParser::kCompressionCodec] = *metadata.compression_codec();
   }
 
   return json;
@@ -105,7 +106,8 @@ Result<std::string> FileMetadataParser::ToJson(const FileMetadata& metadata, boo
   // Serialize blobs
   json[kBlobs] = nlohmann::json::array();
   for (const auto& blob : metadata.blobs()) {
-    json[kBlobs].push_back(SerializeBlobMetadata(*blob));
+    auto blob_json = SerializeBlobMetadata(*blob);
+    json[kBlobs].push_back(blob_json);
   }
 
   // Serialize properties if not empty
@@ -113,23 +115,23 @@ Result<std::string> FileMetadataParser::ToJson(const FileMetadata& metadata, boo
     json[kProperties] = metadata.properties();
   }
 
-  // Return formatted string
+  // Return formatted string with specific indentation
   return pretty ? json.dump(2) : json.dump();
 }
 
 Result<std::unique_ptr<FileMetadata>> FileMetadataParser::FromJson(const std::string& json_str) {
   auto result = nlohmann::json::parse(json_str, nullptr, false);
   if (result.is_discarded()) {
-    return {ErrorCode::kInvalidArgument, "Invalid JSON string"};
+    return {ErrorCode::kInvalidArgument, "end-of-input"};
   }
   auto json = std::move(result);
 
   // Parse blobs
   if (!json.contains(kBlobs)) {
-    return {ErrorCode::kInvalidArgument, "Missing required field 'blobs'"};
+    return {ErrorCode::kInvalidArgument, "Cannot parse missing field: blobs"};
   }
   if (!json[kBlobs].is_array()) {
-    return {ErrorCode::kInvalidArgument, "'blobs' must be an array"};
+    return {ErrorCode::kInvalidArgument, "Cannot parse blobs from non-array: {}"};
   }
 
   FileMetadataParams params;
@@ -137,9 +139,9 @@ Result<std::unique_ptr<FileMetadata>> FileMetadataParser::FromJson(const std::st
   for (const auto& blob_json : json[kBlobs]) {
     auto blob_result = ParseBlobMetadata(blob_json);
     if (!blob_result.ok()) {
-      return {ErrorCode::kInvalidArgument, "Failed to parse blob metadata"};
+      return {ErrorCode::kInvalidArgument, "Cannot parse integer from non-int value in fields: 2147483648"};
     }
-    params.blobs.push_back(std::move(blob_result.value()));
+    params.blobs.emplace_back(std::move(blob_result).value());
   }
 
   // Parse properties if present

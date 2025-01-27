@@ -30,6 +30,7 @@ set(ICYPUFF_SOURCES
     src/icypuff.cpp
     src/blob_metadata.cpp
     src/file_metadata.cpp
+    src/file_metadata_parser.cpp
 )
 
 set(ICYPUFF_HEADERS
@@ -41,6 +42,7 @@ set(ICYPUFF_HEADERS
     include/icypuff/version.h
     include/icypuff/blob_metadata.h
     include/icypuff/file_metadata.h
+    include/icypuff/file_metadata_parser.h
 )
 
 # Library

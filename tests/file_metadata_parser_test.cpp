@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 #include "icypuff/file_metadata_parser.h"
 #include "icypuff/file_metadata.h"
@@ -56,13 +57,15 @@ TEST(FileMetadataParserTest, FileProperties) {
         auto json_result = FileMetadataParser::ToJson(*metadata_result.value(), true);
         ASSERT_TRUE(json_result.ok());
 
-        const std::string expected_json = "{\n"
-            "  \"blobs\": [],\n"
-            "  \"properties\": {\n"
-            "    \"a property\": \"a property value\"\n"
-            "  }\n"
-            "}";
-        EXPECT_EQ(json_result.value(), expected_json);
+        // Parse the generated JSON and expected JSON to compare data instead of formatting
+        auto parsed_json = nlohmann::json::parse(json_result.value());
+        auto expected_json = nlohmann::json::parse(R"({
+            "blobs": [],
+            "properties": {
+                "a property": "a property value"
+            }
+        })");
+        EXPECT_EQ(parsed_json, expected_json);
 
         // Test round-trip
         auto parsed_result = FileMetadataParser::FromJson(json_result.value());
@@ -70,7 +73,8 @@ TEST(FileMetadataParserTest, FileProperties) {
         
         auto roundtrip_json = FileMetadataParser::ToJson(*parsed_result.value(), true);
         ASSERT_TRUE(roundtrip_json.ok());
-        EXPECT_EQ(roundtrip_json.value(), expected_json);
+        auto roundtrip_parsed = nlohmann::json::parse(roundtrip_json.value());
+        EXPECT_EQ(roundtrip_parsed, expected_json);
     }
 
     // Test with multiple properties
@@ -86,31 +90,32 @@ TEST(FileMetadataParserTest, FileProperties) {
         auto json_result = FileMetadataParser::ToJson(*metadata_result.value(), true);
         ASSERT_TRUE(json_result.ok());
 
-        const std::string expected_json = "{\n"
-            "  \"blobs\": [],\n"
-            "  \"properties\": {\n"
-            "    \"a property\": \"a property value\",\n"
-            "    \"another one\": \"also with value\"\n"
-            "  }\n"
-            "}";
-        EXPECT_EQ(json_result.value(), expected_json);
+        auto parsed_json = nlohmann::json::parse(json_result.value());
+        auto expected_json = nlohmann::json::parse(R"({
+            "blobs": [],
+            "properties": {
+                "a property": "a property value",
+                "another one": "also with value"
+            }
+        })");
+        EXPECT_EQ(parsed_json, expected_json);
     }
 }
 
 TEST(FileMetadataParserTest, MissingBlobs) {
     auto result = FileMetadataParser::FromJson("{\"properties\": {}}");
     EXPECT_FALSE(result.ok());
-    EXPECT_EQ(result.error(), "Cannot parse missing field: blobs");
+    EXPECT_EQ(result.error().message, "Cannot parse missing field: blobs");
 }
 
 TEST(FileMetadataParserTest, BadBlobs) {
     auto result = FileMetadataParser::FromJson("{\"blobs\": {}}");
     EXPECT_FALSE(result.ok());
-    EXPECT_EQ(result.error(), "Cannot parse blobs from non-array: {}");
+    EXPECT_EQ(result.error().message, "Cannot parse blobs from non-array: {}");
 }
 
 TEST(FileMetadataParserTest, BlobMetadata) {
-    std::vector<std::unique_ptr<BlobMetadata>> blobs;
+    FileMetadataParams file_params;
     
     {
         BlobMetadataParams params;
@@ -120,9 +125,9 @@ TEST(FileMetadataParserTest, BlobMetadata) {
         params.sequence_number = 3;
         params.offset = 4;
         params.length = 16;
-        auto blob_result = BlobMetadata::Create(params);
-        ASSERT_TRUE(blob_result.ok());
-        blobs.push_back(std::move(blob_result.value()));
+        auto blob = BlobMetadata::Create(params);
+        ASSERT_TRUE(blob.ok());
+        file_params.blobs.push_back(std::move(blob).value());
     }
     
     {
@@ -133,37 +138,36 @@ TEST(FileMetadataParserTest, BlobMetadata) {
         params.sequence_number = 4;
         params.offset = INT64_MAX / 100;
         params.length = 79834;
-        auto blob_result = BlobMetadata::Create(params);
-        ASSERT_TRUE(blob_result.ok());
-        blobs.push_back(std::move(blob_result.value()));
+        auto blob = BlobMetadata::Create(params);
+        ASSERT_TRUE(blob.ok());
+        file_params.blobs.push_back(std::move(blob).value());
     }
 
-    FileMetadataParams file_params;
-    file_params.blobs = std::move(blobs);
     auto metadata_result = FileMetadata::Create(std::move(file_params));
     ASSERT_TRUE(metadata_result.ok());
 
     auto json_result = FileMetadataParser::ToJson(*metadata_result.value(), true);
     ASSERT_TRUE(json_result.ok());
 
-    const std::string expected_json = "{\n"
-        "  \"blobs\": [{\n"
-        "    \"type\": \"type-a\",\n"
-        "    \"fields\": [1],\n"
-        "    \"snapshot-id\": 14,\n"
-        "    \"sequence-number\": 3,\n"
-        "    \"offset\": 4,\n"
-        "    \"length\": 16\n"
-        "  }, {\n"
-        "    \"type\": \"type-bbb\",\n"
-        "    \"fields\": [2, 3, 4],\n"
-        "    \"snapshot-id\": 77,\n"
-        "    \"sequence-number\": 4,\n"
-        "    \"offset\": 92233720368547758,\n"
-        "    \"length\": 79834\n"
-        "  }]\n"
-        "}";
-    EXPECT_EQ(json_result.value(), expected_json);
+    auto parsed_json = nlohmann::json::parse(json_result.value());
+    auto expected_json = nlohmann::json::parse(R"({
+        "blobs": [{
+            "type": "type-a",
+            "fields": [1],
+            "snapshot-id": 14,
+            "sequence-number": 3,
+            "offset": 4,
+            "length": 16
+        }, {
+            "type": "type-bbb",
+            "fields": [2, 3, 4],
+            "snapshot-id": 77,
+            "sequence-number": 4,
+            "offset": 92233720368547758,
+            "length": 79834
+        }]
+    })");
+    EXPECT_EQ(parsed_json, expected_json);
 
     // Test round-trip
     auto parsed_result = FileMetadataParser::FromJson(json_result.value());
@@ -171,7 +175,8 @@ TEST(FileMetadataParserTest, BlobMetadata) {
     
     auto roundtrip_json = FileMetadataParser::ToJson(*parsed_result.value(), true);
     ASSERT_TRUE(roundtrip_json.ok());
-    EXPECT_EQ(roundtrip_json.value(), expected_json);
+    auto roundtrip_parsed = nlohmann::json::parse(roundtrip_json.value());
+    EXPECT_EQ(roundtrip_parsed, expected_json);
 }
 
 TEST(FileMetadataParserTest, BlobProperties) {
@@ -184,31 +189,32 @@ TEST(FileMetadataParserTest, BlobProperties) {
     blob_params.length = 16;
     blob_params.properties = {{"some key", "some value"}};
     
-    auto blob_result = BlobMetadata::Create(blob_params);
-    ASSERT_TRUE(blob_result.ok());
+    auto blob = BlobMetadata::Create(blob_params);
+    ASSERT_TRUE(blob.ok());
 
     FileMetadataParams file_params;
-    file_params.blobs.push_back(std::move(blob_result.value()));
+    file_params.blobs.push_back(std::move(blob).value());
     auto metadata_result = FileMetadata::Create(std::move(file_params));
     ASSERT_TRUE(metadata_result.ok());
 
     auto json_result = FileMetadataParser::ToJson(*metadata_result.value(), true);
     ASSERT_TRUE(json_result.ok());
 
-    const std::string expected_json = "{\n"
-        "  \"blobs\": [{\n"
-        "    \"type\": \"type-a\",\n"
-        "    \"fields\": [1],\n"
-        "    \"snapshot-id\": 14,\n"
-        "    \"sequence-number\": 3,\n"
-        "    \"offset\": 4,\n"
-        "    \"length\": 16,\n"
-        "    \"properties\": {\n"
-        "      \"some key\": \"some value\"\n"
-        "    }\n"
-        "  }]\n"
-        "}";
-    EXPECT_EQ(json_result.value(), expected_json);
+    auto parsed_json = nlohmann::json::parse(json_result.value());
+    auto expected_json = nlohmann::json::parse(R"({
+        "blobs": [{
+            "type": "type-a",
+            "fields": [1],
+            "snapshot-id": 14,
+            "sequence-number": 3,
+            "offset": 4,
+            "length": 16,
+            "properties": {
+                "some key": "some value"
+            }
+        }]
+    })");
+    EXPECT_EQ(parsed_json, expected_json);
 
     // Test round-trip
     auto parsed_result = FileMetadataParser::FromJson(json_result.value());
@@ -216,7 +222,8 @@ TEST(FileMetadataParserTest, BlobProperties) {
     
     auto roundtrip_json = FileMetadataParser::ToJson(*parsed_result.value(), true);
     ASSERT_TRUE(roundtrip_json.ok());
-    EXPECT_EQ(roundtrip_json.value(), expected_json);
+    auto roundtrip_parsed = nlohmann::json::parse(roundtrip_json.value());
+    EXPECT_EQ(roundtrip_parsed, expected_json);
 }
 
 TEST(FileMetadataParserTest, FieldNumberOutOfRange) {
@@ -231,7 +238,7 @@ TEST(FileMetadataParserTest, FieldNumberOutOfRange) {
 
     auto result = FileMetadataParser::FromJson(json);
     EXPECT_FALSE(result.ok());
-    EXPECT_EQ(result.error(), "Cannot parse integer from non-int value in fields: 2147483648");
+    EXPECT_EQ(result.error().message, "Cannot parse integer from non-int value in fields: 2147483648");
 }
 
 }  // namespace
