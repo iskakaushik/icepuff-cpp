@@ -194,7 +194,7 @@ TEST_F(IcypuffWriterTest, WriteMetricDataUncompressed) {
   }
 }
 
-TEST_F(IcypuffWriterTest, DISABLED_WriteMetricDataCompressedZstd) {
+TEST_F(IcypuffWriterTest, WriteMetricDataCompressedZstd) {
   std::string filename = generate_uuid() + "-sample-metric-data-compressed-zstd.bin";
   auto output_file = TestResources::CreateOutputFile(filename);
   auto writer_result = Icypuff::write(std::move(output_file))
@@ -216,11 +216,31 @@ TEST_F(IcypuffWriterTest, DISABLED_WriteMetricDataCompressedZstd) {
   );
   ASSERT_TRUE(blob1_result.ok()) << blob1_result.error().message;
 
-  // Write second blob
-  std::string binary_str = "xxx some blob \0 binary data 🤯 that is not very very very very very very long, is it? xxx";
+  // Create binary data with null character and emoji
+  std::vector<uint8_t> binary_data = {
+      's', 'o', 'm', 'e', ' ',
+      'b', 'l', 'o', 'b', ' ',
+      '\0', ' ',
+      'b', 'i', 'n', 'a', 'r', 'y', ' ',
+      'd', 'a', 't', 'a', ' ',
+      0xF0, 0x9F, 0xA4, 0xAF,  // UTF-8 bytes for 🤯
+      ' ',
+      't', 'h', 'a', 't', ' ',
+      'i', 's', ' ',
+      'n', 'o', 't', ' ',
+      'v', 'e', 'r', 'y', ' ',
+      'v', 'e', 'r', 'y', ' ',
+      'v', 'e', 'r', 'y', ' ',
+      'v', 'e', 'r', 'y', ' ',
+      'v', 'e', 'r', 'y', ' ',
+      'v', 'e', 'r', 'y', ' ',
+      'l', 'o', 'n', 'g', ',', ' ',
+      'i', 's', ' ',
+      'i', 't', '?',
+  };
   auto blob2_result = writer->write_blob(
-      reinterpret_cast<const uint8_t*>(binary_str.data() + 4),
-      binary_str.size() - 8,
+      binary_data.data(),
+      binary_data.size(),
       "some-other-blob",
       std::vector<int>{2},
       2,  // snapshot_id
@@ -259,7 +279,33 @@ TEST_F(IcypuffWriterTest, DISABLED_WriteMetricDataCompressedZstd) {
   auto output_data = input_file->read_at(0, input_file->length().value());
   ASSERT_TRUE(output_data.ok()) << output_data.error().message;
 
-  EXPECT_EQ(output_data.value(), reference_data.value());
+  auto output_bytes = output_data.value();
+  auto reference_bytes = reference_data.value();
+  EXPECT_EQ(output_bytes.size(), reference_bytes.size()) << "File sizes differ";
+
+  std::cout << "Output bytes:" << std::endl;
+  for (size_t i = 0; i < output_bytes.size(); i++) {
+    std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') 
+              << static_cast<int>(output_bytes[i]) << " ";
+    if ((i + 1) % 16 == 0) std::cout << std::endl;
+  }
+  std::cout << std::endl;
+
+  std::cout << "Reference bytes:" << std::endl; 
+  for (size_t i = 0; i < reference_bytes.size(); i++) {
+    std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
+              << static_cast<int>(reference_bytes[i]) << " ";
+    if ((i + 1) % 16 == 0) std::cout << std::endl;
+  }
+  std::cout << std::endl;
+
+  for (size_t i = 0; i < std::min(output_bytes.size(), reference_bytes.size()); i++) {
+    if (output_bytes[i] != reference_bytes[i]) {
+      FAIL() << "Files differ at position " << i 
+             << ": output=0x" << std::hex << static_cast<int>(output_bytes[i])
+             << " reference=0x" << static_cast<int>(reference_bytes[i]);
+    }
+  }
 }
 
 }  // namespace

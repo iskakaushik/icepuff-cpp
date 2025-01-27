@@ -11,5 +11,5 @@ PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 # Change to project root directory
 cd "$PROJECT_ROOT"
 
-# Run the tests
-cd build && ctest --output-on-failure 
+# Run the tests with verbose output
+cd build && ctest --output-on-failure -V 

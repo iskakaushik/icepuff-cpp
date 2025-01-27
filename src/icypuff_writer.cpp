@@ -277,9 +277,20 @@ Result<std::vector<uint8_t>> IcypuffWriter::compress_data(
       size_t max_dst_size = ZSTD_compressBound(length);
       std::vector<uint8_t> compressed(max_dst_size);
 
-      size_t result = ZSTD_compress(compressed.data(), max_dst_size,
-                                  data, length,
-                                  ZSTD_CLEVEL_DEFAULT);
+      ZstdContext ctx;
+      if (!ctx.valid()) {
+        spdlog::error("Failed to create ZSTD context");
+        return {ErrorCode::kCompressionError, "Failed to create ZSTD context"};
+      }
+
+      // Set compression parameters
+      ZSTD_CCtx_setParameter(ctx.get(), ZSTD_c_compressionLevel, 3);
+      ZSTD_CCtx_setParameter(ctx.get(), ZSTD_c_checksumFlag, 1);
+      ZSTD_CCtx_setParameter(ctx.get(), ZSTD_c_contentSizeFlag, 1);
+
+      size_t result = ZSTD_compress2(ctx.get(), compressed.data(), max_dst_size,
+                                   data, length);
+
       if (ZSTD_isError(result)) {
         spdlog::error("ZSTD compression failed: {}", ZSTD_getErrorName(result));
         return {ErrorCode::kCompressionError, "ZSTD compression failed"};
