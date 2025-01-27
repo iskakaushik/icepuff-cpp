@@ -28,6 +28,28 @@ IcyPuff is a C++ library that provides functionality to read and write Puffin fo
 - zstd
 - spdlog
 - gtest (for testing)
+- cxxopts (for demo app)
+
+## Demo Application
+
+The project includes a demo application that showcases basic reading and writing operations with Puffin files. The demo app can:
+- Write random inspirational quotes to a Puffin file with Zstd compression
+- Read and display contents of a Puffin file, including file properties, blob metadata, and content
+
+### Running the Demo
+
+After building the project, you can find the demo app at `build/examples/demo/demo-icypuff`. Here's how to use it:
+
+```bash
+# Show help and available commands
+./build/examples/demo/demo-icypuff -h
+
+# Write a random quote to a Puffin file
+./build/examples/demo/demo-icypuff -w output.puffin
+
+# Read and display contents of a Puffin file
+./build/examples/demo/demo-icypuff -r output.puffin
+```
 
 ## Building
 
