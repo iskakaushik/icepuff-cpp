@@ -33,6 +33,7 @@ set(ICYPUFF_SOURCES
     src/file_metadata_parser.cpp
     src/local_input_file.cpp
     src/local_output_file.cpp
+    src/icypuff_reader.cpp
 )
 
 set(ICYPUFF_HEADERS
@@ -53,6 +54,7 @@ set(ICYPUFF_HEADERS
     include/icypuff/local_output_file.h
     include/icypuff/icypuff_writer.h
     include/icypuff/icypuff_reader.h
+    include/icypuff/format_constants.h
 )
 
 # Library
