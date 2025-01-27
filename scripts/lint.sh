@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Get the project root directory (parent of scripts directory)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
 # Find clang-tidy binary
 if command -v clang-tidy &>/dev/null; then
     CLANG_TIDY="clang-tidy"
@@ -35,15 +39,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Change to project root directory
+cd "$PROJECT_ROOT"
+
 # Ensure compile_commands.json exists
 if [ ! -f "compile_commands.json" ]; then
     echo "Error: compile_commands.json not found."
     echo "Please run build.sh first to generate it."
     exit 1
 fi
-
-# Get project root directory
-PROJECT_ROOT="$(pwd)"
 
 # Run clang-tidy
 echo "Running clang-tidy..."

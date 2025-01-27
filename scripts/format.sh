@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Get the project root directory (parent of scripts directory)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
 # Default to Google style
 STYLE="Google"
 
@@ -17,6 +21,9 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Change to project root directory
+cd "$PROJECT_ROOT"
 
 # First do a dry run to check which files need formatting
 echo "Checking files..."
