@@ -23,14 +23,17 @@ IcypuffWriter::IcypuffWriter(
       footer_compression_(compress_footer ? CompressionCodec::Zstd
                                         : CompressionCodec::None),
       default_blob_compression_(default_blob_compression) {
-  auto stream_result = output_file_->create();
+  spdlog::debug("Attempting to create output stream");
+
+  auto stream_result = output_file_->create_or_overwrite();
   if (!stream_result.ok()) {
     spdlog::error("Failed to create output stream: {}",
                   stream_result.error().message);
     return;
   }
+
   output_stream_ = std::move(stream_result).value();
-  spdlog::debug("Successfully initialized writer");
+  spdlog::debug("Output stream created successfully");
 }
 
 Result<std::unique_ptr<BlobMetadata>> IcypuffWriter::write_blob(
@@ -38,11 +41,15 @@ Result<std::unique_ptr<BlobMetadata>> IcypuffWriter::write_blob(
     const std::vector<int>& fields, int64_t snapshot_id, int64_t sequence_number,
     std::optional<CompressionCodec> compression,
     const std::unordered_map<std::string, std::string>& properties) {
+  spdlog::debug("Writing blob of type: {} with length: {}", type, length);
+
   if (finished_) {
+    spdlog::error("Cannot write blob, writer is already finished");
     return {ErrorCode::kInvalidState, "Writer is already finished"};
   }
 
   if (!output_stream_) {
+    spdlog::error("Cannot write blob, writer is not initialized");
     return {ErrorCode::kStreamNotInitialized, "Writer is not initialized"};
   }
 
@@ -57,19 +64,23 @@ Result<std::unique_ptr<BlobMetadata>> IcypuffWriter::write_blob(
   }
   int64_t offset = pos_result.value();
 
-  CompressionCodec codec =
-      compression.value_or(default_blob_compression_);
+  // Use the provided compression codec or fall back to default
+  CompressionCodec codec = compression.value_or(default_blob_compression_);
+  
+  // Compress the data if needed
   auto compressed_data = compress_data(data, length, codec);
   if (!compressed_data.ok()) {
     return {compressed_data.error().code, compressed_data.error().message};
   }
 
+  // Write the compressed data
   auto write_result = output_stream_->write(compressed_data.value().data(),
                                           compressed_data.value().size());
   if (!write_result.ok()) {
     return {write_result.error().code, write_result.error().message};
   }
 
+  // Create blob metadata
   BlobMetadataParams params;
   params.type = type;
   params.input_fields = fields;
@@ -109,11 +120,15 @@ IcypuffWriter::written_blobs_metadata() const {
 }
 
 Result<void> IcypuffWriter::close() {
+  spdlog::debug("Closing writer");
+
   if (finished_) {
+    spdlog::debug("Writer already finished");
     return Result<void>();
   }
 
   if (!output_stream_) {
+    spdlog::error("Cannot close writer, stream not initialized");
     return {ErrorCode::kStreamNotInitialized, "Writer is not initialized"};
   }
 
@@ -148,6 +163,7 @@ Result<void> IcypuffWriter::close() {
   }
 
   output_stream_.reset();
+  spdlog::debug("Writer closed successfully");
   return Result<void>();
 }
 
@@ -174,7 +190,7 @@ Result<void> IcypuffWriter::write_footer() {
 
   // Create file metadata
   FileMetadataParams params;
-  params.blobs = written_blobs_metadata_;
+  params.blobs = std::move(written_blobs_metadata_);
   params.properties = properties_;
 
   auto metadata = FileMetadata::Create(std::move(params));
@@ -233,8 +249,9 @@ Result<void> IcypuffWriter::write_footer() {
 Result<std::vector<uint8_t>> IcypuffWriter::compress_data(
     const uint8_t* data, size_t length, CompressionCodec codec) {
   switch (codec) {
-    case CompressionCodec::None:
+    case CompressionCodec::None: {
       return std::vector<uint8_t>(data, data + length);
+    }
 
     case CompressionCodec::Lz4: {
       size_t max_dst_size = LZ4F_compressFrameBound(length, nullptr);
@@ -242,12 +259,14 @@ Result<std::vector<uint8_t>> IcypuffWriter::compress_data(
 
       LZ4F_preferences_t prefs = LZ4F_INIT_PREFERENCES;
       prefs.frameInfo.contentSize = length;
+      prefs.frameInfo.contentChecksumFlag = LZ4F_contentChecksumEnabled;
+      prefs.frameInfo.blockChecksumFlag = LZ4F_blockChecksumEnabled;
 
-      size_t result = LZ4F_compressFrame(compressed.data(), compressed.size(),
-                                        data, length, &prefs);
+      size_t result = LZ4F_compressFrame(compressed.data(), max_dst_size,
+                                       data, length, &prefs);
       if (LZ4F_isError(result)) {
-        return {ErrorCode::kCompressionError,
-                "Failed to compress data with LZ4"};
+        spdlog::error("LZ4 compression failed: {}", LZ4F_getErrorName(result));
+        return {ErrorCode::kCompressionError, "LZ4 compression failed"};
       }
 
       compressed.resize(result);
@@ -258,11 +277,12 @@ Result<std::vector<uint8_t>> IcypuffWriter::compress_data(
       size_t max_dst_size = ZSTD_compressBound(length);
       std::vector<uint8_t> compressed(max_dst_size);
 
-      size_t const result =
-          ZSTD_compress(compressed.data(), compressed.size(), data, length, 1);
+      size_t result = ZSTD_compress(compressed.data(), max_dst_size,
+                                  data, length,
+                                  ZSTD_CLEVEL_DEFAULT);
       if (ZSTD_isError(result)) {
-        return {ErrorCode::kCompressionError,
-                "Failed to compress data with Zstd"};
+        spdlog::error("ZSTD compression failed: {}", ZSTD_getErrorName(result));
+        return {ErrorCode::kCompressionError, "ZSTD compression failed"};
       }
 
       compressed.resize(result);
@@ -270,7 +290,7 @@ Result<std::vector<uint8_t>> IcypuffWriter::compress_data(
     }
   }
 
-  return {ErrorCode::kInternalError, "Unknown compression codec"};
+  return {ErrorCode::kUnknownCodec, "Unknown compression codec"};
 }
 
 }  // namespace icypuff 
