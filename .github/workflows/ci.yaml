@@ -42,7 +42,12 @@ jobs:
         key: vcpkg-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
 
     - name: Check Format
-      run: ./scripts/format.sh --check
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          # On Ubuntu, fd-find installs as 'fdfind'
+          alias fd=fdfind
+        fi
+        ./scripts/format.sh --check
 
     # - name: Run Linter
     #   if: matrix.os == 'ubuntu-latest'
