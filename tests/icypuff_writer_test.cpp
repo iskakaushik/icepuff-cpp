@@ -172,7 +172,7 @@ TEST_F(IcypuffWriterTest, DISABLED_WriteMetricDataCompressedZstd) {
   ASSERT_TRUE(blob1_result.ok()) << blob1_result.error().message;
 
   // Write second blob
-  std::string binary_str = "some blob \0 binary data 🤯 that is not very very very very very very long, is it?";
+  std::string binary_str = "xxx some blob \0 binary data 🤯 that is not very very very very very very long, is it? xxx";
   std::string_view binary_view(binary_str.data(), binary_str.size());
   auto blob2_result = writer->write_blob(
       reinterpret_cast<const uint8_t*>(binary_view.data() + 4),
